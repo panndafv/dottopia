@@ -83,9 +83,9 @@
   body.dev #speed { display: flex; }
 
   /* left column */
-  #left { position: fixed; top: 72px; left: 14px; bottom: 70px; width: 300px; display: flex; flex-direction: column; gap: 10px; z-index: 4; }
+  #left { position: fixed; top: 72px; left: 14px; bottom: 282px; width: 300px; display: flex; flex-direction: column; gap: 10px; z-index: 4; }
   #left .card { padding: 12px 14px; }
-  #left h3 { margin: 0 0 6px; font-size: 10.5px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  #left h3, #chatCard h3 { margin: 0 0 6px; font-size: 10.5px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 6px; }
   #evText { margin: 0 0 6px; font-size: 14px; font-weight: 900; line-height: 1.3; }
   #evMeta b.ms { color: #b7791f; }
   #decision .q { margin: 0 0 6px; font-size: 13.5px; font-weight: 800; line-height: 1.35; }
@@ -206,7 +206,7 @@
   #toast.show { opacity: 1; transform: translate(-50%, 0); }
 
   /* lineup mode is a clean showcase */
-  body.lineup #left, body.lineup #leftToggle, body.lineup #rail, body.lineup #res, body.lineup #railToggle, body.lineup .pop, body.lineup #speed, body.lineup .watch { display: none; }
+  body.lineup #left, body.lineup #leftToggle, body.lineup #chatCard, body.lineup #chatToggle, body.lineup #rail, body.lineup #res, body.lineup #railToggle, body.lineup .pop, body.lineup #speed, body.lineup .watch { display: none; }
   body.lineup .tag .nm { display: none; }
 
   /* ---------- meet the dots: a warm studio, like a toy photo shoot ---------- */
@@ -294,10 +294,38 @@
   .sv-foot .social a, .sv-foot .ca { height: 32px; border-radius: 10px; }
   .sv-foot .social a { width: 32px; }
   .sv-foot .social svg { width: 15px; height: 15px; }
+  /* the visitors' chat, under the conversations */
+  #chatCard { position: fixed; left: 14px; bottom: 70px; width: 300px; height: 200px; display: flex; flex-direction: column; padding: 10px 12px; z-index: 4; }
+  .chat-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .chat-head h3 { margin: 0; }
+  .chat-head button { border: 0; background: var(--line); border-radius: 99px; padding: 3px 9px; font: inherit; font-weight: 800; font-size: 11px; color: var(--muted); cursor: pointer; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chat-head button:hover { color: var(--ink); }
+  #chatLog { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 4px; margin-top: 6px; font-size: 12.5px; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+  #chatLog .msg b { color: var(--c); margin-right: 5px; }
+  #chatLog .msg.sys { color: var(--muted); }
+  #chatLog .empty { color: var(--muted); font-weight: 700; }
+  #chatForm { display: flex; gap: 6px; margin-top: 7px; }
+  #chatForm input { flex: 1; min-width: 0; border: 0; border-radius: 10px; padding: 7px 10px; font: inherit; font-size: 12.5px; font-weight: 700; background: var(--line); color: var(--ink); }
+  #chatForm input::placeholder { color: var(--muted); }
+  #chatForm input:focus { outline: 2px solid var(--accent); }
+  #chatForm button { border: 0; border-radius: 10px; width: 36px; flex: none; background: var(--ink); color: #fff; font-weight: 900; cursor: pointer; }
+  #chatToggle { display: none; position: fixed; right: 68px; bottom: 14px; border: 0; width: 42px; height: 42px; font-size: 18px; cursor: pointer; z-index: 6; }
+  /* the welcome card: what this is, and a name for the chat */
+  #welcome { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 16px; background: rgba(28, 31, 46, .32); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+  #welcome[hidden] { display: none; }
+  .wbox { width: min(430px, 100%); padding: 24px 22px 16px; text-align: center; }
+  .wbox .logo { border-radius: 50%; box-shadow: 0 0 0 2px #fff, 0 2px 8px rgba(30, 70, 160, .28); }
+  .wbox h2 { margin: 8px 0 8px; font-size: 21px; letter-spacing: -.3px; }
+  .wbox p { margin: 0 0 10px; font-size: 13.5px; font-weight: 700; color: var(--muted); line-height: 1.45; }
+  .wbox form { display: flex; gap: 6px; margin: 4px 0 8px; }
+  .wbox input { flex: 1; min-width: 0; border: 0; border-radius: 12px; padding: 10px 12px; font: inherit; font-weight: 800; background: var(--line); color: var(--ink); }
+  .wbox input:focus { outline: 2px solid var(--accent); }
+  .wbox form button { border: 0; border-radius: 12px; padding: 10px 18px; background: var(--ink); color: #fff; font: inherit; font-weight: 900; cursor: pointer; }
+  .wbox .ghost { border: 0; background: none; color: var(--muted); font: inherit; font-weight: 800; font-size: 12.5px; cursor: pointer; text-decoration: underline; }
   /* the handle that hides and shows the left column */
   #leftToggle { position: fixed; top: 50%; left: calc(14px + 300px + 4px); transform: translateY(-50%); width: 22px; height: 58px; border: 0; border-radius: 0 11px 11px 0; padding: 0; font-size: 18px; font-weight: 900; color: var(--muted); cursor: pointer; z-index: 4; transition: left .2s; }
   #leftToggle:hover { color: var(--ink); }
-  body.left-closed #left { display: none; }
+  body.left-closed #left, body.left-closed #chatCard { display: none; }
   body.left-closed #leftToggle { left: 0; }
   .openspace { width: 100%; margin: 2px 0 8px; border: 0; border-radius: 11px; padding: 10px; background: var(--ink); color: #fff; font-weight: 900; font-size: 12.5px; cursor: pointer; }
 
@@ -411,7 +439,7 @@
     .stats span { font-size: 9.5px; }
   }
 
-  @media (max-width: 1180px) { #left { width: 270px; } #leftToggle { left: calc(14px + 270px + 4px); } #rail { width: 300px; } #eventCard { display: none; } }
+  @media (max-width: 1180px) { #left, #chatCard { width: 270px; } #leftToggle { left: calc(14px + 270px + 4px); } #rail { width: 300px; } #eventCard { display: none; } }
   /* ---------- phones, tablets and short windows: one column, and the panels slide up as a sheet ---------- */
   .sheet-head { display: none; }
   @media (max-width: 900px), (max-height: 500px) {
@@ -429,15 +457,20 @@
     #decision:not(.open) .q { margin: 0; font-size: 13px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     #decision:not(.open) > :not(h3):not(.q) { display: none; }
     /* along the bottom: the two views, the stores, and the button that opens the panels */
-    #modes { left: 10px; right: 70px; bottom: var(--safe-b); }
+    #modes { left: 10px; right: 130px; bottom: var(--safe-b); }
     body.lineup #modes { right: 10px; }
     #modes button { flex: 1; padding: 11px 6px; font-size: 13px; }
     #railToggle { display: block; right: 10px; bottom: var(--safe-b); width: 52px; height: 51px; border-radius: 16px; }
+    /* the chat is a sheet of its own here, opened from the bottom bar */
+    #chatToggle { display: block; right: 68px; bottom: var(--safe-b); width: 52px; height: 51px; border-radius: 16px; }
+    #chatCard { display: none; }
+    body.chat-open #chatCard { display: flex; left: 10px; right: 10px; width: auto; bottom: calc(var(--safe-b) + 61px); height: min(46dvh, 420px); }
+    body.chat-open #res { display: none; }
     #res { bottom: calc(var(--safe-b) + 61px); max-width: calc(100% - 20px); gap: 11px; padding: 7px 14px; font-size: 12.5px; overflow-x: auto; scrollbar-width: none; }
     #res::-webkit-scrollbar { display: none; }
     #rail { display: none; top: auto; bottom: 0; left: 50%; right: auto; transform: translateX(-50%); width: min(680px, 100%); height: min(64dvh, 640px); border-radius: 22px 22px 0 0; padding-bottom: env(safe-area-inset-bottom); z-index: 7; }
     body.rail-open #rail { display: flex; }
-    body.rail-open #res, body.rail-open #left, body.rail-open #modes, body.rail-open #railToggle { display: none; }
+    body.rail-open #res, body.rail-open #left, body.rail-open #modes, body.rail-open #railToggle, body.rail-open #chatToggle, body.rail-open #chatCard { display: none; }
     .sheet-head { display: flex; align-items: center; justify-content: center; position: relative; height: 40px; flex: none; }
     .sheet-head .grab { width: 40px; height: 5px; border-radius: 99px; background: rgba(28, 31, 46, .16); }
     .sheet-head .social { position: absolute; left: 8px; top: 5px; }
@@ -513,6 +546,24 @@
 <button id="railToggle" class="card" aria-label="Open the Space">☰</button>
 <button id="leftToggle" class="card" aria-label="Hide the side panel" title="Hide the side panel">‹</button>
 
+<section id="chatCard" class="card" aria-label="Visitors' chat">
+  <div class="chat-head"><h3>Visitors' chat</h3><button id="chatName" title="Change your name">pick a name</button></div>
+  <div id="chatLog"><div class="empty">Nobody has said anything yet. Say hi, or argue about the next vote.</div></div>
+  <form id="chatForm" autocomplete="off"><input id="chatText" maxlength="240" placeholder="Pick a name to chat…"><button type="submit" aria-label="Send">➤</button></form>
+</section>
+<button id="chatToggle" class="card" aria-label="Open the chat">💬</button>
+
+<div id="welcome" hidden>
+  <div class="card wbox">
+    <img class="logo" src="assets/icon-96.png" alt="" width="46" height="46">
+    <h2>Welcome to DOTOPIA</h2>
+    <p>Four dots are building a civilisation on this island, live, with no script. Every few minutes they put something to a vote, and everyone watching votes with them: the visitors' majority is the island's fifth vote.</p>
+    <p>Pick a name to join the chat and talk about what to vote for.</p>
+    <form id="welcomeForm" autocomplete="off"><input id="welcomeName" maxlength="20" placeholder="Your name" autocomplete="nickname" required><button type="submit">Join</button></form>
+    <button id="welcomeSkip" class="ghost" type="button">Just watch for now</button>
+  </div>
+</div>
+
 <div id="res" class="card"></div>
 <nav id="modes" class="card">
   <button data-mode="land" class="on"><svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13.6h18l-6.3 6.5a3.6 3.6 0 0 1-5.4 0z" fill="currentColor"/><path d="M8.4 3.6l3.5 7.2H4.9z" fill="currentColor" stroke-width="1.2"/><path d="M8.4 10.8v2M16.2 12v1.6"/><circle cx="16.2" cy="9.6" r="2.4" fill="currentColor" stroke="none"/></svg>The world</button>
@@ -584,6 +635,26 @@ import SITE from './site.js';
   });
   // the left column stays hidden if you hid it last time (the handle itself is wired in ui/panels.js)
   try { if (localStorage.getItem('dotopia.left') === 'closed') document.body.classList.add('left-closed'); } catch { /* no storage */ }
+}
+// ---------- welcome: what this is, and a name for the chat (the chat itself is wired up further down) ----------
+let pendingJoin = null; // a name picked before the chat was ready, so the joining notice still goes out
+{
+  const box = document.getElementById('welcome'), nameEl = document.getElementById('welcomeName');
+  let savedName = '', welcomed = false;
+  try { savedName = localStorage.getItem('dotopia.name') || ''; welcomed = localStorage.getItem('dotopia.welcomed') === '1'; } catch { /* no storage */ }
+  if (!savedName && !welcomed) { box.hidden = false; setTimeout(() => nameEl.focus(), 50); }
+  document.getElementById('welcomeSkip').addEventListener('click', () => { box.hidden = true; try { localStorage.setItem('dotopia.welcomed', '1'); } catch { /* ignore */ } });
+  document.getElementById('welcomeForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = nameEl.value.replace(/\s+/g, ' ').trim().slice(0, 20);
+    if (name.length < 2) { nameEl.focus(); return; }
+    box.hidden = true;
+    try { localStorage.setItem('dotopia.name', name); localStorage.setItem('dotopia.welcomed', '1'); } catch { /* ignore */ }
+    const detail = { name, was: savedName };
+    savedName = name;
+    pendingJoin = detail;
+    document.dispatchEvent(new CustomEvent('dotopia:name', { detail }));
+  });
 }
 
 // ---------- utils ----------
@@ -1590,6 +1661,62 @@ const ui = createUI({
 });
 if (awayNote) ui.toast(awayNote, dayOf(S));
 
+// ---------- the visitors' chat: a small room under the dots' conversations ----------
+// On a server it goes through POST api/chat and comes back to everyone over the live stream; on the public
+// site it is written to and read from the database directly; in a private world you talk to yourself.
+const chatLogEl = document.getElementById('chatLog'), chatTextEl = document.getElementById('chatText'), chatNameEl = document.getElementById('chatName');
+let myName = store.get('dotopia.name') || '';
+const chatSeen = new Set();
+let chatLocalN = 0;
+const chatHue = (name) => { let h = 7; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; };
+function addChat(list) {
+  let added = false;
+  for (const m of list || []) {
+    const key = m.key ?? m.n;
+    if (!m.name || !m.text || chatSeen.has(key)) continue;
+    chatSeen.add(key); added = true;
+    const el = document.createElement('div');
+    el.className = m.sys ? 'msg sys' : 'msg';
+    el.style.setProperty('--c', `hsl(${chatHue(m.name)} 62% 40%)`);
+    el.innerHTML = m.sys ? `👋 <b>${esc(m.name)}</b> ${esc(m.text)}` : `<b>${esc(m.name)}</b>${esc(m.text)}`;
+    chatLogEl.appendChild(el);
+  }
+  if (!added) return;
+  chatLogEl.querySelector('.empty')?.remove();
+  while (chatLogEl.children.length > 120) chatLogEl.firstChild.remove();
+  chatLogEl.scrollTop = chatLogEl.scrollHeight;
+}
+async function sendChat(text, sys) {
+  if (FIREBASE) {
+    const { D, db } = live;
+    try { await D.push(D.ref(db, 'chat'), { name: myName, text, t: Date.now(), sys: sys || null }); } catch { throw new Error('the chat is not switched on for this site yet'); }
+  } else if (LIVE) {
+    const r = await fetch('api/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: myName, text, voter: VOTER, sys }) });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `the server said ${r.status}`);
+  } else addChat([{ n: `local${++chatLocalN}`, t: Date.now(), name: myName, text, sys }]);
+}
+const showName = () => { chatNameEl.textContent = myName || 'pick a name'; chatTextEl.placeholder = myName ? 'Say something, or argue about the next vote…' : 'Pick a name to chat…'; };
+const askName = () => { const w = document.getElementById('welcome'), n = document.getElementById('welcomeName'); n.value = myName; w.hidden = false; setTimeout(() => n.focus(), 50); };
+showName();
+chatNameEl.addEventListener('click', askName);
+chatTextEl.addEventListener('focus', () => { if (!myName) askName(); });
+const joined = (d) => {
+  const was = myName; myName = d.name; showName();
+  if (myName !== (d.was || was)) sendChat(d.was ? `is now called ${myName}` : 'joined the island', 'join').catch(() => {});
+};
+document.addEventListener('dotopia:name', (e) => { pendingJoin = null; joined(e.detail); chatTextEl.focus(); });
+if (pendingJoin) { const d = pendingJoin; pendingJoin = null; joined(d); }
+document.getElementById('chatForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const text = chatTextEl.value.replace(/\s+/g, ' ').trim();
+  if (!text) return;
+  if (!myName) { askName(); return; }
+  chatTextEl.value = '';
+  sendChat(text).catch((err) => ui.toast(`Your message did not go through: ${err.message}.`, dayOf(S)));
+});
+document.getElementById('chatToggle').addEventListener('click', () => document.body.classList.toggle('chat-open'));
+if (LIVE && !FIREBASE) addChat(live.state.chat || []);
+
 // ---------- meet the dots: one live card per dot ----------
 const TAGLINE = {
   blue: 'Thinks in blueprints. Would rather build it right than build it twice.',
@@ -1709,6 +1836,8 @@ if (FIREBASE) {
     S = { ...S, proposals: list('proposals'), disputes: list('disputes'), decisions: list('decisions') };
   });
   D.onValue(at('live'), (s) => { if (s.exists()) S = { ...S, live: s.val() }; });
+  // the visitors' chat: the last few dozen messages, then each new one as it is said
+  D.onChildAdded(D.query(D.ref(db, 'chat'), D.orderByKey(), D.limitToLast(80)), (c) => { const v = c.val(); if (v && typeof v === 'object') addChat([{ key: c.key, ...v }]); });
   const caps = { history: 800, feed: 120, engineLog: 80, transactions: 120, journal: 400, days: 100000 };
   for (const kind of Object.keys(caps)) { // new log entries stream in one by one
     const have = kind === 'transactions' ? S.economy.transactions : S[kind] || [];
@@ -1752,8 +1881,10 @@ if (FIREBASE) {
     const st = JSON.parse(e.data);
     if (st.seed !== S.seed) { location.reload(); return; } // the world was restarted
     S = st; startClock(S); world.sync(S); placeForMode();
+    addChat(st.chat || []);
   });
   es.addEventListener('frame', (e) => applyFrame(JSON.parse(e.data)));
+  es.addEventListener('chat', (e) => addChat(JSON.parse(e.data)));
   es.addEventListener('events', (e) => {
     for (const ev of JSON.parse(e.data)) {
       if (ev.type === 'say') byId[ev.id]?.say(ev.text);

@@ -53,7 +53,16 @@ async function save() {
   await mkdir(DATA, { recursive: true });
   await writeFile(FILE + '.tmp', JSON.stringify(rest));
   await rename(FILE + '.tmp', FILE); // atomic: a crash mid-write never corrupts the world
+  if (chatDirty) { chatDirty = false; await writeFile(CHAT_FILE, JSON.stringify(chat)); }
 }
+// ---------------------------------------------------------------- the visitors' chat
+// A small room for whoever is watching, under the dots' conversations. Not part of the world: kept here,
+// saved next to it, sent with every snapshot and pushed to everyone the moment something is said.
+const CHAT_FILE = path.join(DATA, 'chat.json');
+const CHAT_KEEP = 150;
+let chat = [], chatDirty = false;
+try { chat = JSON.parse(await readFile(CHAT_FILE, 'utf8')).slice(-CHAT_KEEP); } catch { /* nothing said yet */ }
+let chatN = chat.length ? chat[chat.length - 1].n || 0 : 0;
 async function backup(tag = 'hourly') {
   try {
     await mkdir(BACKUPS, { recursive: true });
@@ -93,8 +102,9 @@ const viewers = new Set();
 let lastSent = S.seq;
 
 function liveInfo() { return { now: Date.now(), rate: RATE, night: NIGHT, viewers: viewers.size }; }
-// viewers get everything except the outbox and the visitors' ballots (only the tally on each proposal)
-function snapshot() { const { outbox, ballots, ...rest } = S; return { ...rest, live: liveInfo() }; }
+// viewers get everything except the outbox and the visitors' ballots (only the tally on each proposal),
+// plus the last of the visitors' chat
+function snapshot() { const { outbox, ballots, ...rest } = S; return { ...rest, live: liveInfo(), chat: chat.slice(-80) }; }
 // a frame is the whole world minus the long logs; logs only send what's new since the last frame
 function frame() {
   const { outbox, ballots, history, feed, engineLog, proposals, disputes, decisions, journal, days, economy, ...rest } = S;
@@ -215,6 +225,8 @@ async function pause(res) {
 const VOTER_ID = /^[a-z0-9]{16,40}$/;
 const votersByAddr = new Map(); // address -> voter ids seen on the current proposal
 let votersFor = 0;
+// behind a reverse proxy (Caddy, nginx) every connection looks local, so take the address it forwards
+const addrOf = (req) => (isLocal(req) && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()) || req.socket.remoteAddress;
 const readBody = (req) => new Promise((resolve, reject) => {
   let data = '';
   req.on('data', (c) => { data += c; if (data.length > 2048) { reject(new Error('too long')); req.destroy(); } });
@@ -229,8 +241,7 @@ async function castVote(req, res) {
   if (+body.proposal !== p.num) return json(res, { error: 'that vote is over' }, 409);
   const { choice, voter } = body;
   if ((choice !== 'support' && choice !== 'oppose') || typeof voter !== 'string' || !VOTER_ID.test(voter)) return json(res, { error: 'bad vote' }, 400);
-  // behind a reverse proxy (Caddy, nginx) every connection looks local, so take the address it forwards
-  const addr = (isLocal(req) && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()) || req.socket.remoteAddress;
+  const addr = addrOf(req);
   if (votersFor !== p.num) { votersFor = p.num; votersByAddr.clear(); }
   const seen = votersByAddr.get(addr) || new Set();
   seen.add(voter); votersByAddr.set(addr, seen);
@@ -245,10 +256,34 @@ async function castVote(req, res) {
   return json(res, { ok: true, crowd });
 }
 
+// A visitor says something. Names are whatever they picked (2-20 characters), messages up to 240, and
+// one address gets a dozen messages a minute at most. "sys: join" marks the line as a joining notice.
+const chatRecent = new Map(); // address -> recent timestamps
+const clean = (v, max) => String(v ?? '').replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim().slice(0, max);
+async function postChat(req, res) {
+  let body;
+  try { body = JSON.parse(await readBody(req)); } catch { return json(res, { error: 'bad request' }, 400); }
+  const name = clean(body.name, 20), text = clean(body.text, 240);
+  if (name.length < 2 || !text) return json(res, { error: 'a name and a message are needed' }, 400);
+  const addr = addrOf(req), now = Date.now();
+  const recent = (chatRecent.get(addr) || []).filter((t) => now - t < 60000);
+  if (recent.length >= 12 || (recent.length && now - recent[recent.length - 1] < 1000)) return json(res, { error: 'slow down a little' }, 429);
+  recent.push(now); chatRecent.set(addr, recent);
+  const msg = { n: ++chatN, t: now, name, text };
+  if (body.sys === 'join') msg.sys = 'join';
+  chat.push(msg);
+  if (chat.length > CHAT_KEEP) chat = chat.slice(-CHAT_KEEP);
+  chatDirty = true;
+  broadcast('chat', [msg]);
+  pub?.chat(msg);
+  return json(res, { ok: true, msg });
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (req.method === 'POST' && url.pathname === '/admin/pause' && isLocal(req)) return pause(res);
   if (req.method === 'POST' && url.pathname === '/api/vote') return castVote(req, res);
+  if (req.method === 'POST' && url.pathname === '/api/chat') return postChat(req, res);
   if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, { error: 'read only' }, 405);
   switch (url.pathname) {
     case '/live': return openStream(req, res);

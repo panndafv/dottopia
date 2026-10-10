@@ -7,7 +7,7 @@
 import {
   TICK, DAY, DAWN, MEAL, RES, ACTIONS, BLUEPRINTS, POLICIES, BASE_PRICE,
   dayOf, hourOf, minuteOfDay, isNight, clockOf, pad, built, building, hasLaw, foodDays, agentList, nameOf, rand, pickR,
-  VOTE_WINDOW,
+  VOTE_WINDOW, VOTE_GAP,
 } from './catalog.js';
 import * as mind from './minds.js';
 
@@ -140,6 +140,7 @@ function deposit(s, a, res, n) {
 function migrate(s) {
   s.decisions ??= []; s.journal ??= []; s.days ??= [];
   for (const a of agentList(s)) { a.today ??= {}; a.name = mind.IDENTITIES[a.id].name; } // names follow minds.js, so a rename reaches saved worlds too
+  s.council ??= { next: s.time + 30, asked: {}, turn: 0 };
 }
 
 export function step(s, minutes) {
@@ -159,7 +160,10 @@ function tick(s) {
   for (const a of agentList(s)) if (a.task && s.time >= a.task.end) complete(s, a);
   const k = (s.time / TICK) % 4; // rotate who thinks first, so nobody always gets first pick
   for (let i = 0; i < 4; i++) { const a = s.agents[AGENT_IDS[(i + k) % 4]]; if (!a.task) think(s, a); }
+  // votes are quick now: whoever is awake votes from wherever they are, instead of after their chores
+  if (openProposal(s)) for (const a of agentList(s)) if (!a.asleep) vote(s, a);
   resolveProposals(s);
+  council(s);
 }
 
 function needs(s, a) {
@@ -968,7 +972,72 @@ function finish(s, b, a) {
 }
 
 // ---------------------------------------------------------------- governance
-function propose(s, a, kind, bp) {
+// The island's own votes. Every few minutes (VOTE_GAP), when nobody has a proposal pending, the island puts
+// a question to everyone: what to focus on, whether to rest or feast, a building that needs a vote, or a
+// rule one of the dots was about to propose anyway. The dots and the visitors vote on it like anything
+// else. None of these becomes a law; passing one changes what the dots want for a while (minds.js score).
+const COUNCIL = new Set(['focus_food', 'focus_wood', 'focus_stone', 'focus_water', 'focus_metal', 'focus_build', 'explore', 'rest', 'feast']);
+const FOCUS_ACTS = { focus_food: ['FORAGE_FOOD', 'TEND_FARM'], focus_wood: ['GATHER_WOOD'], focus_stone: ['QUARRY_STONE'], focus_water: ['FETCH_WATER'], focus_metal: ['MINE_ORE'], focus_build: ['CONTINUE', 'START'], explore: ['SCOUT'] };
+function councilQuestion(s) {
+  const c = s.council, h = hourOf(s), fd = foodDays(s);
+  const fresh = (key, hours) => (c.asked[key] ?? -Infinity) < s.time - hours * 60;
+  const avg = (k) => agentList(s).reduce((t, a) => t + a.needs[k], 0) / 4;
+  const options = [];
+  // something a dot would propose anyway: a law, or a building that needs everyone's say
+  for (const a of agentList(s)) if (!a.asleep) for (const act of validActions(s, a)) if (act.type === 'PROPOSE') options.push({ w: 1.5 + Math.max(0, mind.lean(s, a, act.kind, act.bp)), by: a.id, kind: act.kind, bp: act.bp, key: act.code });
+  // a shared project under way that could use every pair of hands
+  const site = s.buildings.find((b) => b.status === 'building' && !b.owner);
+  if (site && fresh('focus_build', 4)) options.push({ w: 1.2, kind: 'focus_build', bp: site.bp, key: 'focus_build' });
+  // the scarcest things
+  const need = mind.materialNeed(s, s.agents.blue);
+  const scarce = {
+    food: (s.nodes.berries.some((b) => b >= 2) || built(s, 'farm')) ? (fd < 1 ? 1.8 : fd < 2.5 ? 1.0 : 0.15) : 0,
+    wood: s.nodes.trees.some((t) => t > 0) ? (need.wood > 0 ? 0.6 + Math.min(0.8, need.wood / 30) : 0.1) : 0,
+    stone: s.nodes.quarry > 0 ? (need.stone > 0 ? 0.6 + Math.min(0.8, need.stone / 20) : 0.1) : 0,
+    water: s.stock.water < 15 ? 1.2 : 0.05,
+    metal: s.nodes.oreFound && s.nodes.ore > 0 && need.metal > 0 ? 0.9 : 0,
+  };
+  for (const [res, w] of Object.entries(scarce)) if (w > 0 && fresh(`focus_${res}`, 5)) options.push({ w, kind: `focus_${res}`, key: `focus_${res}` });
+  if (h < 14 && fresh('explore', 6)) options.push({ w: s.nodes.oreFound ? 0.25 : 0.9, kind: 'explore', key: 'explore' });
+  if (avg('energy') < 45 && fresh('rest', 3)) options.push({ w: 1.3, kind: 'rest', key: 'rest' });
+  if (fd > 3.5 && s.stock.food > 40 && h >= 15 && fresh('feast', 20)) options.push({ w: 0.8 + (fd - 3.5) * 0.2, kind: 'feast', key: 'feast' });
+  if (!options.length) return null;
+  let r = rand(s) * options.reduce((t, o) => t + o.w, 0);
+  const pick = options.find((o) => (r -= o.w) <= 0) || options[options.length - 1];
+  if (!pick.by) { // the island's own questions are raised by the dots in turn
+    for (let i = 0; i < 4; i++) { const id = AGENT_IDS[(c.turn + i) % 4]; if (!s.agents[id].asleep) { pick.by = id; c.turn = (c.turn + i + 1) % 4; break; } }
+  }
+  return pick.by ? pick : null;
+}
+function council(s) {
+  const c = s.council;
+  if (openProposal(s) || s.time < c.next || isNight(s) || hourOf(s) < 6.5 || allAsleep(s)) return;
+  const q = councilQuestion(s);
+  if (!q) { c.next = s.time + 30; return; }
+  c.asked[q.key] = s.time;
+  c.next = Infinity; // the next one is scheduled when this vote closes
+  propose(s, s.agents[q.by], q.kind, q.bp, { council: COUNCIL.has(q.kind) });
+}
+function councilEffect(s, p) {
+  switch (p.kind) {
+    case 'rest':
+      for (const a of agentList(s)) if (!a.asleep) { a.needs.energy = Math.min(100, a.needs.energy + 18); a.needs.mood = Math.min(100, a.needs.mood + 5); }
+      log(s, 'The island takes a breather. Everyone rests for a while.', 'event', AGENT_IDS);
+      break;
+    case 'feast': {
+      const cost = Math.min(s.stock.food, 8);
+      s.stock.food -= cost;
+      for (const a of agentList(s)) { a.needs.fed = Math.min(100, a.needs.fed + 30); a.needs.mood = Math.min(100, a.needs.mood + 12); }
+      if (!milestone(s, 'feast', 'The island holds its first feast.', AGENT_IDS)) log(s, `A feast: ${cost} food from the stores, and everyone goes to bed happy.`, 'event', AGENT_IDS);
+      sayAll(s, [[p.by, 'Eat up, everyone!']]);
+      break;
+    }
+    default: // a focus: everyone leans that way for the rest of the afternoon
+      s.focus = { kind: p.kind, acts: FOCUS_ACTS[p.kind], bp: p.kind === 'focus_build' ? p.bp : null, until: s.time + 6 * 60 };
+  }
+}
+
+function propose(s, a, kind, bp, opts = {}) {
   const P = POLICIES[kind];
   const trusted = (exclude = []) => agentList(s).filter((o) => !exclude.includes(o.id))
     .map((o) => [o, agentList(s).filter((x) => x !== o).reduce((t, x) => t + (x.rel[o.id] ?? 50), 0)])
@@ -979,15 +1048,16 @@ function propose(s, a, kind, bp) {
   const p = {
     id: s.nextId++, num: s.proposals.length + 1, kind, bp, who, by: a.id,
     title: fill(P.title), question: fill(P.question), law: fill(P.law),
-    day: dayOf(s), clock: clockOf(s), opened: s.time, closes: s.time + 8 * 60,
+    day: dayOf(s), clock: clockOf(s), opened: s.time, closes: s.time + VOTE_WINDOW,
     votes: Object.fromEntries(AGENT_IDS.map((id) => [id, id === a.id ? 'support' : null])), status: 'open',
+    council: !!opts.council, // one of the island's own questions: no law comes of it, and no grudges either
   };
   s.proposals.push(p);
-  log(s, `Proposal #${pad(p.num, 3)} by ${a.name}: ${p.question}`, 'proposal', [a.id]);
+  if (!p.council) log(s, `Proposal #${pad(p.num, 3)} by ${a.name}: ${p.question}`, 'proposal', [a.id]);
   const pitch = mind.talk.pitch(s, a, p);
   sayAll(s, pitch);
   p.lines = { [a.id]: pitch[0]?.[1] };
-  recordDecision(s, a, { kind: 'vote', title: p.title, proposal: p.num, reasoning: a.trace?.decision?.startsWith('PROPOSE_') ? a.trace.reasoning : '' });
+  recordDecision(s, a, { kind: 'vote', title: p.title, proposal: p.num, reasoning: a.trace?.decision?.startsWith('PROPOSE_') ? a.trace.reasoning : p.council ? pitch[0]?.[1] || '' : '' });
   emit(s, { type: 'proposal', p });
   return p.id;
 }
@@ -1002,7 +1072,7 @@ function vote(s, a) {
   p.votes[a.id] = choice;
   const line = mind.talk.vote(s, a, p, choice);
   (p.lines ??= {})[a.id] = line;
-  say(s, a.id, `${{ support: '👍', oppose: '👎', undecided: '🤔' }[choice]} ${line}`);
+  if (!p.council) say(s, a.id, `${{ support: '👍', oppose: '👎', undecided: '🤔' }[choice]} ${line}`); // the island's quick votes only show on the card
   emit(s, { type: 'vote', id: a.id, p, choice });
 }
 
@@ -1033,9 +1103,7 @@ export function setBallots(s, num, by) { // the whole box at once: the public si
 function resolveProposals(s) {
   const p = openProposal(s);
   if (!p) return;
-  const done = AGENT_IDS.every((id) => p.votes[id] === 'support' || p.votes[id] === 'oppose');
-  if (s.time < (p.opened ?? 0) + VOTE_WINDOW) return; // the ballot box stays open a while for the visitors
-  if (!done && (s.time < p.closes || isNight(s))) return;
+  if (s.time < (p.opened ?? 0) + VOTE_WINDOW) return; // the ballot box stays open for the visitors, then closes: anyone who hasn't voted abstains
   const crowd = tally(s, p).vote;
   const dotsYes = AGENT_IDS.filter((id) => p.votes[id] === 'support').length;
   const dotsNo = AGENT_IDS.filter((id) => p.votes[id] === 'oppose').length;
@@ -1058,10 +1126,11 @@ function resolveProposals(s) {
   p.closed = s.time;
   p.result = `${yes}–${no}`;
   s.ballots = null; // the box is closed
+  if (s.council) s.council.next = s.time + VOTE_GAP[0] + rand(s) * (VOTE_GAP[1] - VOTE_GAP[0]); // and the next vote is on the clock
   s.counters.votes++;
   if (!passed) s.counters.failedVotes++;
   const by = s.agents[p.by];
-  for (const id of AGENT_IDS) {
+  if (!p.council) for (const id of AGENT_IDS) { // the island's own questions leave no grudges; a dot's proposal does
     if (id === p.by) continue;
     if (p.votes[id] === 'oppose') { relate(by, s.agents[id], -4); remember(s, by, `${nameOf(s, id)} voted against my proposal on "${p.title}".`, 1); }
     if (p.votes[id] === 'support') relate(by, s.agents[id], 3);
@@ -1076,6 +1145,7 @@ function resolveProposals(s) {
 function enact(s, p) {
   const a = s.agents[p.by];
   if (p.kind === 'build') { startProject(s, a, p.bp, p); return; }
+  if (COUNCIL.has(p.kind)) { councilEffect(s, p); return; }
   const law = { num: s.laws.length + 1, kind: p.kind, text: p.law, day: dayOf(s), by: p.by, proposal: p.num };
   s.laws.push(law);
   if (!milestone(s, 'first_law', `The first law passes. LAW ${pad(law.num, 3)}: ${law.text}`, [p.by])) log(s, `LAW ${pad(law.num, 3)}: ${law.text}`, 'law', [p.by]);

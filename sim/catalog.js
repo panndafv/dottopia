@@ -6,7 +6,8 @@ export const TICK = 10;                 // simulated minutes per engine tick
 export const DAY = 24 * 60;
 export const DAWN = 6 * 60;
 export const BEDTIME = 21 * 60 + 30;
-export const VOTE_WINDOW = 4 * 60;   // a vote stays open at least this long (simulated minutes), so the visitors can weigh in
+export const VOTE_WINDOW = 48;         // ballots stay open this long (simulated minutes): two real minutes at the default pace
+export const VOTE_GAP = [0, 60];       // the island waits this long between votes: up to two and a half real minutes, so one opens every 2-5
 export const MEAL = { food: 2, water: 1 }; // what one meal consumes
 export const DAILY_FOOD = 16;           // rough food use of four residents per day
 
@@ -72,6 +73,17 @@ export const POLICIES = {
   coordinator: { title: 'A coordinator', question: 'Should {who} become coordinator, running meetings and breaking ties?', law: '{who} is the settlement coordinator and breaks tied votes.' },
   tax:         { title: 'Public works tax', question: 'Should every sale pay 10% to the shared treasury to fund public works?', law: 'Every sale pays 10% to the shared treasury, which pays wages for public works.' },
   build:       { title: 'Build a {bp}', question: 'Should we build a {bp} with shared resources?' },
+  // the island's own questions, put to everyone every few minutes when no dot has a proposal pending
+  // (engine.js council). Passing one changes what the dots want for a while; none of them becomes a law.
+  focus_food:  { title: 'Focus on food', question: 'Should everyone focus on food until tonight?' },
+  focus_wood:  { title: 'Focus on wood', question: 'Should everyone focus on chopping wood until tonight?' },
+  focus_stone: { title: 'Focus on stone', question: 'Should everyone focus on quarrying stone until tonight?' },
+  focus_water: { title: 'Focus on water', question: 'Should everyone fetch water until the stores are full?' },
+  focus_metal: { title: 'Focus on ore', question: 'Should everyone with tools focus on mining ore until tonight?' },
+  focus_build: { title: 'All hands on the {bp}', question: 'Should everyone drop what they are doing and work on the {bp} until tonight?' },
+  explore:     { title: 'Scout the edges', question: 'Should the dots spend the day scouting the edges of the island?' },
+  rest:        { title: 'A breather', question: 'Should everyone stop and rest for a while?' },
+  feast:       { title: 'A feast', question: 'Should we open the stores for a feast tonight?' },
 };
 
 // ---------------------------------------------------------------- state helpers (pure)

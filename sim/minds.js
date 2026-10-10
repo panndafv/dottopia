@@ -147,6 +147,7 @@ export function materialNeed(s, a) {
 // how an agent feels about a proposal kind, given their nature and their situation
 export function lean(s, a, kind, bp) {
   if (kind === 'build') return desire(s, a, bp) / 1.5 - 0.3;
+  const w = IDENTITIES[a.id].w, fd = foodDays(s);
   let v = LEAN[kind]?.[a.id] ?? 0;
   switch (kind) {
     case 'decide_rule': v += 0.12 * s.counters.objections; break;
@@ -156,6 +157,14 @@ export function lean(s, a, kind, bp) {
     case 'court': v += s.counters.disputes * 0.08; break;
     case 'warden': v += s.counters.violations * 0.08 - (a.violations || 0) * 0.35; break;
     case 'tax': v -= s.economy.businesses.some((b) => b.owner === a.id) ? 0.25 : 0; break;
+    // the island's own questions (catalog.js POLICIES, engine.js council)
+    case 'focus_food': v += 0.15 + (fd < 2 ? 0.5 : fd < 3.5 ? 0.2 : -0.15) + (w.gather - 1) * 0.3; break;
+    case 'focus_wood': case 'focus_stone': case 'focus_metal': v += 0.1 + (w.gather - 1) * 0.4 + (w.build - 1) * 0.3; break;
+    case 'focus_water': v += 0.2 + (s.stock.water < 10 ? 0.4 : 0); break;
+    case 'focus_build': v += 0.15 + (w.build - 1) * 0.6 + (BUILD_BIAS[a.id][bp] || 0) * 0.5; break;
+    case 'explore': v += -0.15 + (w.explore - 1) * 0.6 + (s.nodes.oreFound ? -0.2 : 0.25); break;
+    case 'rest': v += (55 - a.needs.energy) / 50; break;
+    case 'feast': v += 0.1 + (fd - 3.5) * 0.15 + (w.social - 1) * 0.4 - (a.id === 'blue' && fd < 5 ? 0.35 : 0); break;
   }
   return v;
 }
@@ -202,6 +211,9 @@ export function score(s, a, act) {
   // (but nobody keeps doing a job the settlement no longer needs)
   const xp = ACTIONS[act.type].xp;
   if (xp && a.xpTotal && u > 0.25) u += 0.35 * (a.xp[xp] || 0) / a.xpTotal;
+  // what the island voted to focus on (engine.js council) pulls everyone that way for a while
+  const f = s.focus;
+  if (f && s.time < f.until && f.acts.includes(act.type) && (!f.bp || !act.bp || act.bp === f.bp)) u += 0.55;
   return u;
 }
 
@@ -319,6 +331,16 @@ const PITCH = {
   warden: 'Rules nobody enforces aren\'t rules.',
   coordinator: 'We need someone to run meetings and break ties.',
   tax: 'Public works need paying for. A small cut of every sale.',
+  // the island's own questions
+  focus_food: 'Food is what we are short of. Everyone on berries and the farm until dark?',
+  focus_wood: 'We need wood more than anything right now. All of us in the grove today?',
+  focus_stone: 'Stone is what is holding us up. Everyone to the quarry?',
+  focus_water: 'The water is running low. Shall we all fetch some?',
+  focus_metal: 'The vein is waiting. Everyone with tools down the mine?',
+  focus_build: 'Let\'s finish what we started. Everyone on the build site until tonight?',
+  explore: 'We still don\'t know what is out there. A day of scouting?',
+  rest: 'Everyone is running on empty. Shall we all take a breather?',
+  feast: 'The stores are full for once. A feast tonight?',
 };
 const VOTE_LINE = {
   property: { support: { pink: 'Effort should count for something.', green: 'Finally. Yes.', blue: 'It rewards work. Yes.', yellow: 'If it\'s only half, I can live with it.' },

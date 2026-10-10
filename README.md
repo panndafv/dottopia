@@ -14,8 +14,8 @@
   <img src="https://img.shields.io/badge/node-%E2%89%A520-ff47b0?style=flat-square" alt="Node 20 or newer">
 </p>
 
-<p align="center"><img src=".github/assets/the-island.jpg" alt="The island on day 5: Moss has proposed that whoever gathers keeps half, the dots are voting, and a visitor has cast their ballot"></p>
-<p align="center"><sub>Day 5, 11:20. A vote is open, and the visitors are the fifth voter.</sub></p>
+<p align="center"><img src=".github/assets/the-island.jpg" alt="The island on day 1: a vote on chopping wood is open, the four dots have voted, the visitors can, and a visitor is chatting about it"></p>
+<p align="center"><sub>Day 1, 09:45. A vote is open, the visitors are the fifth voter, and the chat is already arguing about it.</sub></p>
 
 > **You create the laws of physics. The dots create the society.**
 
@@ -57,7 +57,8 @@ everyone who visits sees the same world at the same moment.
 - **Politics.** Spending shared materials without asking causes friction. Sooner or later someone proposes a
   rule, and the four of them vote on it. So does everyone watching: the visitors' majority is the island's fifth
   vote, which settles it when the dots split 2–2. Laws can ration food, recognise private property, create a
-  currency, sell land, set up a court, appoint a warden or coordinator, or introduce a tax.
+  currency, sell land, set up a court, appoint a warden or coordinator, or introduce a tax. In between, every
+  few minutes, the island puts smaller questions to everyone: what to focus on, whether to rest, a feast.
 - **Economy.** Depending on the laws they pass, gathered goods go to the shared stores, to whoever gathered them,
   or both. With property comes barter; with a currency come prices, a ledger, businesses and a treasury.
 - **Society.** Relationships rise and fall with every favour, objection and vote. Disputes go to court once there
@@ -159,10 +160,14 @@ The result and the ballot count go on the record like everything else:
 
 > "Food rationing" passes 3–2. The dots were split 2–2 and the visitors broke the tie: 67% for (3 ballots).
 
-Ballots stay open for at least four simulated hours (`VOTE_WINDOW` in `sim/catalog.js`: ten real minutes at the
-default pace), even once all four dots have voted, so people have time to weigh in. One ballot per browser, and
-you can change your mind until the box closes. If nobody votes, the visitors abstain and the four dots decide
-as before.
+There is a vote every two to five minutes. The dots raise their own proposals when something bothers them, and
+whenever nothing is pending the island itself puts a question to everyone: what to focus on until tonight (food,
+wood, stone, water, ore, or a building under way), whether to scout the edges, take a breather or hold a feast,
+or a rule one of the dots was about to propose anyway. The dots vote from wherever they are, ballots stay open
+for two minutes (`VOTE_WINDOW` in `sim/catalog.js`, 48 simulated minutes), and then the next vote is on the
+clock (`VOTE_GAP`). Nothing is put to a vote at night. One ballot per browser, and you can change your mind
+until the box closes. If nobody votes, the visitors abstain and the four dots decide as before. The island's
+own questions never become laws; passing one changes what the dots want for the rest of the afternoon.
 
 How a ballot reaches the world depends on how the page is served:
 
@@ -175,6 +180,16 @@ How a ballot reaches the world depends on how the page is served:
 Ballots are tied to a random id kept in your browser, not to an account, so this is a show of hands rather than
 a referendum: a determined person could vote more than once. The server accepts only a handful of ids per
 address, which keeps it honest enough for an island.
+
+### The visitors' chat
+
+Under the dots' conversations there is a small chat for whoever is watching. The first time someone arrives, a
+welcome card explains the island and asks for a name; from then on they can talk about what to vote for next,
+and the room is told when someone joins. On a DOTOPIA server, messages go through `POST /api/chat`, come back
+to everyone over the live stream, and the last 150 are kept next to the world; one address gets a dozen
+messages a minute at most. On the public site through Firebase, the page writes to and reads from the `chat/`
+path of the database directly (the rules below allow exactly that), and the server trims it to the last 150.
+In a private world you are talking to yourself. On phones the chat opens from the 💬 button in the bottom bar.
 
 ### Time
 
@@ -297,9 +312,9 @@ To run the real thing, use `npm start` (port 5182).
    ```
 
 3. Download a service-account key to `server/firebase-key.json` (it never leaves your machine and is ignored by git).
-4. Make the database public to read and closed to write, except for the visitors' ballots. Only the server,
-   using that key, can write the world; a visitor can only write their own ballot on a proposal, and only
-   the words `support` or `oppose`:
+4. Make the database public to read and closed to write, except for the visitors' ballots and their chat. Only
+   the server, using that key, can write the world; a visitor can only write their own ballot on a proposal
+   (the words `support` or `oppose`) and new chat messages of a sensible size:
 
    ```json
    {
@@ -311,6 +326,12 @@ To run the real thing, use `npm start` (port 5182).
            "$voter": {
              ".write": "$proposal.matches(/^p[0-9]{1,6}$/) && $voter.matches(/^[a-z0-9]{16,40}$/) && newData.isString() && (newData.val() == 'support' || newData.val() == 'oppose')"
            }
+         }
+       },
+       "chat": {
+         ".read": true,
+         "$msg": {
+           ".write": "!data.exists() && newData.hasChildren(['name', 'text', 't']) && newData.child('name').isString() && newData.child('name').val().length >= 2 && newData.child('name').val().length <= 20 && newData.child('text').isString() && newData.child('text').val().length >= 1 && newData.child('text').val().length <= 240 && newData.child('t').isNumber()"
          }
        }
      }

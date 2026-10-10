@@ -29,7 +29,9 @@ export async function createPublisher({ root, log }) {
   const app = admin.initializeApp({ credential: admin.credential.cert(credentials), databaseURL: config.databaseURL });
   const world = admin.database(app).ref('world');
   const votes = admin.database(app).ref('votes'); // the visitors' ballots: votes/p<proposal>/<voter> = support | oppose
+  const chatRef = admin.database(app).ref('chat'); // the visitors' chat: the public site writes here itself; the server trims it
   let ballotKeys = new Set();              // the proposals that currently have ballots in the database
+  let beats = 0;
   const sent = new Map();                 // path -> JSON last written, so only real changes go out
   const written = Object.fromEntries(Object.keys(LOGS).map((k) => [k, []])); // log keys we've written, oldest first
   let lastSeq = 0, eventN = 0, failing = false;
@@ -111,6 +113,13 @@ export async function createPublisher({ root, log }) {
         const old = await world.child('events').orderByKey().endAt(`${Date.now() - 120000}_999`).get();
         if (old.exists()) { const rm = {}; old.forEach((c) => { rm[c.key] = null; }); await world.child('events').update(rm); }
       } catch (e) { fail(e); }
+      if (++beats % 10 === 0) try { // the chat keeps its last 150 messages
+        const all = await chatRef.orderByKey().get();
+        const keys = all.exists() ? Object.keys(all.val()).sort() : [];
+        if (keys.length > 150) { const rm = {}; for (const k of keys.slice(0, keys.length - 150)) rm[k] = null; await chatRef.update(rm); }
+      } catch (e) { fail(e); }
     },
+    // a message said on the machine that runs the world (through its own server) goes out to the public site too
+    chat(msg) { return chatRef.push({ name: msg.name, text: msg.text, t: msg.t, sys: msg.sys || null }).then(ok, fail); },
   };
 }
