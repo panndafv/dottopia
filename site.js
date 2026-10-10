@@ -5,5 +5,5 @@ export default {
 
   // the coin's contract address. Leave it as '' to show "CA: soon"; paste the address between the
   // quotes to show it with a copy button, like  ca: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
-  ca: '',
+  ca: 'GKdwF6N66Wba1KVpVfrZdRM1kWbSmzjWWxDbSz6apump',
 };
