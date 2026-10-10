@@ -1,7 +1,7 @@
 // DOTOPIA - the dots keep their own history, in git.
 //
 // Whenever something worth remembering happens on the island, whoever made it happen commits it to
-// chronicle/ under their own name (Nimbus <nimbus@dotopia.world>, Moss, Sol, Rosie). Things nobody
+// chronicle/ under their own name (Kairo <kairo@dotopia.world>, Moss, Vex, Mochi). Things nobody
 // did on purpose (storms, blights) and each finished day are committed by the engine. Commits are
 // pushed every few minutes. Nothing here ever uses the identity of whoever runs the server.
 //
@@ -134,6 +134,7 @@ export async function createChronicle({ root, data, log }) {
         out.push(`## The vote${p.status === 'open' ? ' (still open)' : `: ${p.status} ${p.result}`}`, '', quote(p.question), '');
         out.push('| | Vote | What they said |', '|---|---|---|');
         for (const id of ORDER) out.push(`| ${nameOf(s, id)} | ${p.votes[id] || (p.status === 'open' ? 'thinking…' : 'abstained')} | ${p.lines?.[id] ? `“${String(p.lines[id]).replace(/\|/g, '/')}”` : ''} |`);
+        if (p.crowd && p.crowd.support + p.crowd.oppose) out.push(`| The visitors | ${p.crowd.vote || 'split'} | ${p.crowd.support} for, ${p.crowd.oppose} against |`);
         out.push('');
         if (p.law && p.status === 'passed') out.push(`It became law: ${quote(p.law)}`, '');
       }

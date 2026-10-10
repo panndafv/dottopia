@@ -1,5 +1,5 @@
 // DOTOPIA - the observer's interface. Read-only: visitors watch, they don't steer.
-import { ACTIONS, BLUEPRINTS, RES, RES_ICON, pad, dayOf, clockOf, hourOf, nameOf } from '../sim/catalog.js';
+import { ACTIONS, BLUEPRINTS, RES, RES_ICON, VOTE_WINDOW, pad, dayOf, clockOf, hourOf, nameOf } from '../sim/catalog.js';
 import { IDENTITIES, roleOf } from '../sim/minds.js';
 import { openProposal } from '../sim/engine.js';
 import * as space from '../sim/space.js';
@@ -69,7 +69,7 @@ export function agentSections(s, id, colors) {
     <ul class="mem">${a.memories.slice(-7).reverse().map((m) => `<li><span class="muted">Day ${pad(m.day, 3)}</span> ${esc(m.text)}</li>`).join('') || '<li class="muted">Nothing worth remembering yet.</li>'}</ul>`;
 }
 
-export function createUI({ colors, dev = false, onSelect, onSpeed, onReset, onClose }) {
+export function createUI({ colors, dev = false, onSelect, onSpeed, onReset, onClose, onBallot = null, myVote = () => null }) {
   const $ = (id) => document.getElementById(id);
   let tab = 'agents', selected = null, feedTab = 'talk', histFilter = 'all';
   let lastPanel = 0, lastSide = 0, held = false;
@@ -98,6 +98,12 @@ export function createUI({ colors, dev = false, onSelect, onSpeed, onReset, onCl
   const compact = matchMedia('(max-width: 900px), (max-height: 500px)');
   $('decision').addEventListener('click', (e) => {
     const card = $('decision');
+    const b = e.target.closest('[data-ballot]');
+    if (b) { // a visitor casting their ballot: never toggles or closes the card
+      const num = +(b.closest('[data-num]')?.dataset.num || 0);
+      if (onBallot && num) onBallot(num, b.dataset.ballot);
+      return;
+    }
     if (compact.matches && !card.classList.contains('open')) { card.classList.add('open'); return; }
     const r = e.target.closest('[data-agent]');
     if (r) onSelect(r.dataset.agent);
@@ -124,6 +130,21 @@ export function createUI({ colors, dev = false, onSelect, onSpeed, onReset, onCl
       + (e.currency ? `<span title="shared treasury">🏛️ <b>${e.treasury}</b><small>dots</small></span>` : ''));
   }
 
+  // ---- the visitors: everyone watching votes as one, and their majority is the island's fifth vote
+  function crowdRow(p, open) {
+    const c = p.crowd || { support: 0, oppose: 0, vote: null }, total = c.support + c.oppose;
+    const st = c.vote ? STANCE[c.vote] : total ? 'SPLIT' : open ? 'NO BALLOTS YET' : 'ABSTAINED';
+    return `<div class="vote crowd"><i class="dot" style="--c:#6a7088"></i><span>Visitors${total ? `<small class="muted">${c.support} for · ${c.oppose} against</small>` : ''}</span><b class="st ${c.vote || 'pending'}">${st}</b></div>`;
+  }
+  function ballotBox(p) {
+    const mine = myVote(p.num);
+    return `<div class="ballot" data-num="${p.num}">
+      <button data-ballot="support" class="${mine === 'support' ? 'on' : ''}">👍 Support</button>
+      <button data-ballot="oppose" class="${mine === 'oppose' ? 'on' : ''}">👎 Oppose</button>
+      <p class="muted small">${mine ? `You voted to ${mine}. You can change your mind until the ballots close.` : 'You are one of the visitors. Visitors vote as one, and their majority is the fifth vote.'}</p>
+    </div>`;
+  }
+
   // ---- left column: current event, live decision, feed
   function side(s) {
     const notable = [...s.history].reverse().find((h) => h.kind !== 'day');
@@ -141,11 +162,11 @@ export function createUI({ colors, dev = false, onSelect, onSpeed, onReset, onCl
       const open = p.status === 'open';
       setHTML(card, `<h3>${open ? 'Live decision' : 'Decided'} <span class="tag-num">#${pad(p.num, 3)}</span></h3>
         <p class="q">${esc(p.question)}</p>
-        <p class="muted small">Proposed by ${dot(p.by)}${esc(nameOf(s, p.by))} · Day ${pad(p.day, 3)} ${p.clock}${open ? '' : ` · <b class="${p.status}">${p.status.toUpperCase()} ${p.result}</b>`}</p>
+        <p class="muted small">Proposed by ${dot(p.by)}${esc(nameOf(s, p.by))} · Day ${pad(p.day, 3)} ${p.clock}${open ? ` · ballots open until at least ${clockOf({ time: (p.opened ?? s.time) + VOTE_WINDOW })}` : ` · <b class="${p.status}">${p.status.toUpperCase()} ${p.result}</b>`}</p>
         <div class="votes">${ORDER.map((id) => {
           const v = p.votes[id];
           return `<div class="vote" data-agent="${id}">${dot(id)}<span>${esc(nameOf(s, id))}</span><b class="st ${v || 'pending'}">${v ? STANCE[v] : open ? 'THINKING…' : 'ABSTAINED'}</b></div>`;
-        }).join('')}</div>`);
+        }).join('')}${crowdRow(p, open)}</div>${open && onBallot ? ballotBox(p) : ''}`);
     }
     const lines = feedTab === 'talk' ? s.feed.slice(-40) : s.engineLog.slice(-40);
     const feed = $('feed');

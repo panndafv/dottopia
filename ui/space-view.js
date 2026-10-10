@@ -312,7 +312,8 @@ export function createSpaceView({ colors, mapData, onOpen, onClose }) {
     const rule = s.laws.find((l) => l.kind === 'decide_rule');
     const props = [...s.proposals].reverse().slice(0, 30).map((p) => {
       const d = (s.decisions || []).find((x) => x.proposal === p.num);
-      return [`#${D3(p.num)}`, d ? decisionLink(d) : esc(p.title), who(p.by), p.status === 'open' ? 'voting' : `${p.status} ${p.result}`, ORDER.map((id) => `${dot(id)}${p.votes[id] ? STANCE[p.votes[id]][0] : '·'}`).join(' ')];
+      const crowd = p.crowd && p.crowd.support + p.crowd.oppose ? ` 👥${p.crowd.vote ? STANCE[p.crowd.vote][0] : '·'}` : '';
+      return [`#${D3(p.num)}`, d ? decisionLink(d) : esc(p.title), who(p.by), p.status === 'open' ? 'voting' : `${p.status} ${p.result}`, ORDER.map((id) => `${dot(id)}${p.votes[id] ? STANCE[p.votes[id]][0] : '·'}`).join(' ') + crowd];
     });
     const disputes = [...s.disputes].reverse().slice(0, 20).map((d) => [`#${D3(d.num)}`, `${who(d.plaintiff)} v. ${who(d.defendant)}`, esc(d.about), d.status === 'open' ? 'open' : `${esc(d.ruling)}${d.by ? ` (${esc(nameOf(s, d.by))})` : ''}`]);
     return `${head(s, 'society/government', '📄', 'Government', 'Who holds which role, how decisions get made, and every proposal and dispute so far.')}
@@ -414,7 +415,7 @@ export function createSpaceView({ colors, mapData, onOpen, onClose }) {
       ${d.options?.length ? `<h2>Options on the table</h2><ol class="opts big">${d.options.map((o, i) => `<li class="${o.code === `START_${(b?.bp || '').toUpperCase()}` ? 'pick' : ''}"><b>${'ABCD'[i]}</b><code>${esc(o.code)}</code><span>${o.u.toFixed(2)}</span></li>`).join('')}</ol><p class="muted small">The engine listed what was possible; the decision layer chose one.</p>` : ''}
       ${d.objection ? `<h2>Objection</h2><blockquote>${who(d.objection.by)}: “${esc(d.objection.text)}”${d.objection.reply ? `<br>${who(d.by)}: “${esc(d.objection.reply)}”` : ''}</blockquote>` : ''}
       ${p ? `<h2>The vote</h2><p class="q">${esc(p.question)}</p>
-        <ul class="rows">${ORDER.map((id) => `<li>${who(id)} <b class="st ${p.votes[id] || 'pending'}">${p.votes[id] ? STANCE[p.votes[id]] : p.status === 'open' ? 'THINKING…' : 'ABSTAINED'}</b>${p.lines?.[id] ? ` <span class="muted">“${esc(p.lines[id].replace(/^\S+\s/, (m) => (/[👍👎🤔]/u.test(m) ? '' : m)))}”</span>` : ''}</li>`).join('')}</ul>
+        <ul class="rows">${ORDER.map((id) => `<li>${who(id)} <b class="st ${p.votes[id] || 'pending'}">${p.votes[id] ? STANCE[p.votes[id]] : p.status === 'open' ? 'THINKING…' : 'ABSTAINED'}</b>${p.lines?.[id] ? ` <span class="muted">“${esc(p.lines[id].replace(/^\S+\s/, (m) => (/[👍👎🤔]/u.test(m) ? '' : m)))}”</span>` : ''}</li>`).join('')}${p.crowd && p.crowd.support + p.crowd.oppose ? `<li>👥 The visitors <b class="st ${p.crowd.vote || 'pending'}">${p.crowd.vote ? STANCE[p.crowd.vote] : 'SPLIT'}</b> <span class="muted">${p.crowd.support} for, ${p.crowd.oppose} against</span></li>` : ''}</ul>
         <p><b class="${p.status}">${p.status === 'open' ? 'Voting is still open.' : `${p.status.toUpperCase()} ${p.result}`}</b></p>
         ${law ? `<div class="law"><b>LAW ${D3(law.num)}</b><p>${esc(law.text)}</p></div>` : ''}` : ''}
       ${outcome ? `<h2>Outcome</h2><p>${outcome} · ${link('world/infrastructure', 'Infrastructure')}</p>` : ''}`;

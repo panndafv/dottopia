@@ -100,6 +100,16 @@
   .st.support { background: #d9f7e4; color: #137a3f; }
   .st.oppose { background: #ffe1e1; color: #b42324; }
   .st.undecided { background: #fff1c7; color: #8a6000; }
+  /* the visitors' row and ballot box: everyone watching votes as one, the fifth voter */
+  .vote.crowd { cursor: default; }
+  .vote.crowd:hover { background: none; }
+  .vote.crowd small { font-weight: 700; margin-left: 5px; }
+  .ballot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 7px; }
+  .ballot button { border: 0; border-radius: 99px; padding: 6px 12px; font: inherit; font-weight: 900; font-size: 12px; cursor: pointer; background: var(--line); color: var(--ink); transition: transform .15s, background .15s; }
+  .ballot button:hover { transform: translateY(-1px); }
+  .ballot button.on[data-ballot="support"] { background: #d9f7e4; color: #137a3f; }
+  .ballot button.on[data-ballot="oppose"] { background: #ffe1e1; color: #b42324; }
+  .ballot p { flex-basis: 100%; margin: 2px 0 0; }
   .mini-trace { margin-top: 6px; font-size: 12px; font-weight: 800; padding: 8px; border-radius: 10px; background: var(--line); cursor: pointer; }
   .mini-trace code { font-size: 11px; }
   .mini-trace p { margin: 4px 0 0; font-weight: 700; color: var(--muted); }
@@ -267,14 +277,6 @@
 
   .spacebtn { display: inline-flex; align-items: center; gap: 7px; border: 0; background: var(--ink); color: #fff; border-radius: 14px; padding: 9px 14px 9px 12px; font-weight: 900; font-size: 13px; cursor: pointer; white-space: nowrap; }
   .spacebtn svg { width: 17px; height: 17px; flex: none; }
-  /* where else DOTOPIA lives (GitHub, and whatever you add to the socialLinks template) */
-  .social { display: flex; gap: 6px; }
-  .social a { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--line); color: var(--ink); transition: background .15s, transform .15s; }
-  .social a:hover { background: rgba(28, 31, 46, .15); transform: translateY(-1px); }
-  .social svg { width: 17px; height: 17px; }
-  .sv-foot .social { margin-top: 8px; }
-  .sv-foot .social a { width: 32px; height: 32px; border-radius: 10px; }
-  .sv-foot .social svg { width: 15px; height: 15px; }
   .openspace { width: 100%; margin: 2px 0 8px; border: 0; border-radius: 11px; padding: 10px; background: var(--ink); color: #fff; font-weight: 900; font-size: 12.5px; cursor: pointer; }
 
   /* ---------- the Space: the civilization's memory as pages ---------- */
@@ -462,7 +464,6 @@
   <div class="pop">POPULATION <b>4</b></div>
   <div class="watch" id="watching"></div>
   <button id="openSpace" class="spacebtn" title="The civilization's shared memory" aria-label="Open the Space"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="12.5" height="15.5" rx="2.6"/><path d="M8 21h9.4a2.6 2.6 0 0 0 2.6-2.6V7.5M7.8 8.2h5M7.8 12.2h5"/></svg><span>Space</span></button>
-  <nav class="social" data-social aria-label="DOTOPIA elsewhere"></nav>
   <div id="speed" class="seg" title="dev: simulation speed"><button data-s="0">⏸</button><button data-s="1">1×</button><button data-s="2">10×</button><button data-s="3">40×</button><button data-s="4">160×</button></div>
 </header>
 
@@ -476,7 +477,7 @@
 </section>
 
 <aside id="rail" class="card">
-  <div class="sheet-head"><nav class="social" data-social aria-label="DOTOPIA elsewhere"></nav><span class="grab"></span><button id="railClose" aria-label="Close">✕</button></div>
+  <div class="sheet-head"><span class="grab"></span><button id="railClose" aria-label="Close">✕</button></div>
   <nav id="tabs"><button data-tab="agents" class="on">Agents</button><button data-tab="space">Space</button><button data-tab="history">History</button><button data-tab="laws">Laws</button><button data-tab="economy">Economy</button></nav>
   <div id="panel"></div>
 </aside>
@@ -490,7 +491,7 @@
 <section id="meet">
   <div class="meet-head">
     <p class="eyebrow" id="meetDay">DAY 1 ON THE ISLAND</p>
-    <h2><u style="--c:#2f6dff">Nimbus</u>, <u style="--c:#8fdc2a">Moss</u>, <u style="--c:#ffc21f">Sol</u> <span class="amp">&amp;</span> <u style="--c:#ff47b0">Rosie</u></h2>
+    <h2><u style="--c:#2f6dff">Kairo</u>, <u style="--c:#8fdc2a">Moss</u>, <u style="--c:#ffc21f">Vex</u> <span class="amp">&amp;</span> <u style="--c:#ff47b0">Mochi</u></h2>
   </div>
   <div id="meetCards"></div>
 </section>
@@ -501,7 +502,7 @@
   <aside class="sv-side">
     <div class="sv-brand"><img class="logo" src="assets/icon-96.png" alt="" width="26" height="26">DOTOPIA <span class="muted">Space</span></div>
     <nav class="sv-tree"></nav>
-    <div class="sv-foot muted small">Read-only. Every page is written by the simulation.<nav class="social" data-social aria-label="DOTOPIA elsewhere"></nav></div>
+    <div class="sv-foot muted small">Read-only. Every page is written by the simulation.</div>
   </aside>
   <main class="sv-main">
     <div class="sv-top"><button class="sv-menu">☰ Pages</button><button class="sv-close">← Back to the world</button></div>
@@ -510,13 +511,6 @@
   <div class="sv-tip"></div>
 </div>
 
-<template id="socialLinks">
-  <a href="https://github.com/panndafv/dottopia" target="_blank" rel="noopener" title="DOTOPIA on GitHub" aria-label="DOTOPIA on GitHub"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.74.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .11-.78.42-1.3.76-1.6-2.66-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22v3.29c0 .32.21.7.82.58A12 12 0 0 0 12 .3"/></svg></a>
-</template>
-<script>
-  // Links to where DOTOPIA lives (GitHub for now; add more to the template above): in the top bar, the panel sheet (phones) and the Space
-  for (const el of document.querySelectorAll('[data-social]')) el.innerHTML = document.getElementById('socialLinks').innerHTML;
-</script>
 
 <script type="module">
 import * as THREE from 'three';
@@ -533,7 +527,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import * as E from './sim/engine.js';
 import * as space from './sim/space.js';
-import { hourOf, dayOf, DAY, TICK } from './sim/catalog.js';
+import { hourOf, dayOf, nameOf, DAY, TICK } from './sim/catalog.js';
 import { World3D, ISLAND_R, ZONES, PLOTS, HOME_PLOTS, SIZE } from './world/props.js';
 import { createUI, taskIcon, describeTask, esc } from './ui/panels.js';
 import { IDENTITIES, roleOf } from './sim/minds.js';
@@ -1075,6 +1069,8 @@ E.drain(S);
 // ---------- the agents (modelled in Blender; the download started at the top) ----------
 const LIB = (await agentsGLB).scene;
 
+// keyed by the characters' names in the Blender file (the node names inside assets/agents.glb); the names they go
+// by on the island come from sim/minds.js, so renaming a dot never touches the model
 const CFG = {
   Nimbus: { id: 'blue', fur: '#2f6dff', hop: { h: 0.16, dur: 0.62, len: 0.42 } },
   Moss: { id: 'green', fur: '#8fdc2a', hop: { h: 0.23, dur: 0.42, len: 0.4 } },
@@ -1163,7 +1159,7 @@ class Agent {
     const el = document.createElement('div');
     el.className = 'tag';
     el.style.setProperty('--c', cfg.fur);
-    el.innerHTML = `<div class="bubble"></div><div class="nm"><i></i>${name}<span class="act"></span></div>`;
+    el.innerHTML = `<div class="bubble"></div><div class="nm"><i></i>${nameOf(S, cfg.id)}<span class="act"></span></div>`; // the name they go by (the model is still keyed by its Blender name)
     this.bubbleEl = el.querySelector('.bubble');
     this.actEl = el.querySelector('.act');
     el.addEventListener('click', (e) => { e.stopPropagation(); focusAgent(this); });
@@ -1503,12 +1499,34 @@ function placeForMode() {
 placeForMode();
 
 // ---------- UI ----------
+// Visitors vote as one: anyone watching can back or oppose the open proposal, and the majority of their
+// ballots is the island's fifth vote (sim/engine.js castBallot). Each browser gets a random voter id.
+const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* no storage */ } } };
+const VOTER = store.get('dotopia.voter') || (() => {
+  const id = Array.from(crypto.getRandomValues(new Uint8Array(24)), (b) => (b % 36).toString(36)).join('');
+  store.set('dotopia.voter', id);
+  return id;
+})();
+const myBallots = (() => { try { return JSON.parse(store.get('dotopia.ballots') || '{}'); } catch { return {}; } })();
+async function castBallot(num, choice) {
+  if (FIREBASE) { // the public site: the ballot goes straight to the database, and the server reads it from there
+    const { D, db } = live;
+    try { await D.set(D.ref(db, `votes/p${num}/${VOTER}`), choice); } catch { throw new Error('voting is not switched on for this site yet'); }
+  } else if (LIVE) {
+    const r = await fetch('api/vote', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ proposal: num, choice, voter: VOTER }) });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `the server said ${r.status}`);
+  } else if (!E.castBallot(S, VOTER, choice, num)) throw new Error('that vote is over'); // a private world: you are the whole crowd
+  myBallots[num] = choice;
+  store.set('dotopia.ballots', JSON.stringify(Object.fromEntries(Object.entries(myBallots).slice(-20))));
+}
 let focused = null, flyT = 0, flyHome = null, resetting = false;
 const ui = createUI({
   colors: AGENT_COLORS,
   dev: DEV && !LIVE,
   onSelect: (id) => focusAgent(byId[id]),
   onSpeed: (i) => { if (!DEV) return; speed = i; try { localStorage.setItem('dotopia.speed', String(i)); } catch { /* ignore */ } },
+  myVote: (num) => myBallots[num] || null,
+  onBallot: (num, choice) => castBallot(num, choice).catch((e) => ui.toast(`Your vote did not count: ${e.message}.`, dayOf(S))),
   onReset: () => {
     if (!DEV || !confirm('Start a brand new world? The current history will be erased.')) return;
     resetting = true; // don't let the unload handler save the old world back
@@ -1576,7 +1594,7 @@ const spaceView = createSpaceView({
       return v && { x: v.x, z: v.z, size: v.size, bp: b.bp, status: b.status, progress: b.progress, owner: b.owner };
     }).filter(Boolean),
     trees: world.trees.map((t) => ({ x: t.g.position.x, z: t.g.position.z, alive: (t.target ?? 1) > 0.3 })),
-    agents: agents.map((a) => ({ id: a.id, name: a.name, x: a.root.position.x, z: a.root.position.z, inside: a.inside })),
+    agents: agents.map((a) => ({ id: a.id, name: nameOf(S, a.id), x: a.root.position.x, z: a.root.position.z, inside: a.inside })),
   }),
 });
 const openSpace = (path = 'home') => { location.hash = `#/space/${path}`; };

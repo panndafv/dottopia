@@ -93,10 +93,11 @@ const viewers = new Set();
 let lastSent = S.seq;
 
 function liveInfo() { return { now: Date.now(), rate: RATE, night: NIGHT, viewers: viewers.size }; }
-function snapshot() { const { outbox, ...rest } = S; return { ...rest, live: liveInfo() }; }
+// viewers get everything except the outbox and the visitors' ballots (only the tally on each proposal)
+function snapshot() { const { outbox, ballots, ...rest } = S; return { ...rest, live: liveInfo() }; }
 // a frame is the whole world minus the long logs; logs only send what's new since the last frame
 function frame() {
-  const { outbox, history, feed, engineLog, proposals, disputes, decisions, journal, days, economy, ...rest } = S;
+  const { outbox, ballots, history, feed, engineLog, proposals, disputes, decisions, journal, days, economy, ...rest } = S;
   const fresh = (arr = []) => arr.filter((x) => (x.n || 0) > lastSent);
   const f = {
     ...rest,
@@ -159,7 +160,16 @@ setInterval(() => {
   if (S.time !== before || events.length) dirty = true;
 }, 250);
 setInterval(() => { if (dirty && !S.paused) { dirty = false; broadcast('frame', frame()); pub?.frame(S, pace); } }, 1000);
-setInterval(() => { if (!S.paused) pub?.beat(pace); }, 15000);
+setInterval(() => { if (!S.paused) { pub?.beat(pace); pub?.pruneBallots(E.openProposal(S)?.num); } }, 15000);
+// the visitors' ballots on the public site are written to Firebase; the mirror hands them back here
+pub?.watchBallots((all) => {
+  const p = E.openProposal(S);
+  for (const key of Object.keys(all)) if (!p || key !== `p${p.num}`) pub.clearBallots(key); // votes on closed proposals go
+  if (!p) return;
+  const by = {};
+  for (const [voter, choice] of Object.entries(all[`p${p.num}`] || {})) if (VOTER_ID.test(voter) && (choice === 'support' || choice === 'oppose')) by[voter] = choice;
+  if (E.setBallots(S, p.num, by)) dirty = true;
+});
 setInterval(() => chron?.sync(S), 5000);
 setInterval(() => { for (const res of viewers) res.write(': keep-alive\n\n'); }, 20000);
 setInterval(() => save().catch((e) => say('save failed', e.message)), 30000);
@@ -200,9 +210,45 @@ async function pause(res) {
   setTimeout(() => process.exit(0), 300);
 }
 
+// Visitors vote on the open proposal (sim/engine.js castBallot): together they are the island's fifth voter.
+// One ballot per voter id, and only a handful of voter ids per address, so one person can't be a crowd.
+const VOTER_ID = /^[a-z0-9]{16,40}$/;
+const votersByAddr = new Map(); // address -> voter ids seen on the current proposal
+let votersFor = 0;
+const readBody = (req) => new Promise((resolve, reject) => {
+  let data = '';
+  req.on('data', (c) => { data += c; if (data.length > 2048) { reject(new Error('too long')); req.destroy(); } });
+  req.on('end', () => resolve(data));
+  req.on('error', reject);
+});
+async function castVote(req, res) {
+  let body;
+  try { body = JSON.parse(await readBody(req)); } catch { return json(res, { error: 'bad request' }, 400); }
+  const p = E.openProposal(S);
+  if (!p || S.paused) return json(res, { error: 'no vote in progress' }, 409);
+  if (+body.proposal !== p.num) return json(res, { error: 'that vote is over' }, 409);
+  const { choice, voter } = body;
+  if ((choice !== 'support' && choice !== 'oppose') || typeof voter !== 'string' || !VOTER_ID.test(voter)) return json(res, { error: 'bad vote' }, 400);
+  // behind a reverse proxy (Caddy, nginx) every connection looks local, so take the address it forwards
+  const addr = (isLocal(req) && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()) || req.socket.remoteAddress;
+  if (votersFor !== p.num) { votersFor = p.num; votersByAddr.clear(); }
+  const seen = votersByAddr.get(addr) || new Set();
+  seen.add(voter); votersByAddr.set(addr, seen);
+  if (seen.size > 5) return json(res, { error: 'too many voters from this address' }, 429);
+  if (pub) { // with the public mirror, the database is the ballot box; the mirror hands the ballots back
+    await pub.ballot(p.num, voter, choice).catch(() => {});
+    return json(res, { ok: true, crowd: p.crowd || { support: 0, oppose: 0, vote: null } });
+  }
+  const crowd = E.castBallot(S, voter, choice, p.num);
+  if (!crowd) return json(res, { error: 'that vote is over' }, 409);
+  dirty = true;
+  return json(res, { ok: true, crowd });
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (req.method === 'POST' && url.pathname === '/admin/pause' && isLocal(req)) return pause(res);
+  if (req.method === 'POST' && url.pathname === '/api/vote') return castVote(req, res);
   if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, { error: 'read only' }, 405);
   switch (url.pathname) {
     case '/live': return openStream(req, res);

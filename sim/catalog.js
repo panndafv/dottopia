@@ -6,6 +6,7 @@ export const TICK = 10;                 // simulated minutes per engine tick
 export const DAY = 24 * 60;
 export const DAWN = 6 * 60;
 export const BEDTIME = 21 * 60 + 30;
+export const VOTE_WINDOW = 4 * 60;   // a vote stays open at least this long (simulated minutes), so the visitors can weigh in
 export const MEAL = { food: 2, water: 1 }; // what one meal consumes
 export const DAILY_FOOD = 16;           // rough food use of four residents per day
 

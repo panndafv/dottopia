@@ -12,7 +12,7 @@ import { ACTIONS, BLUEPRINTS, DAILY_FOOD, built, hasLaw, dayOf, hourOf, foodDays
 // Traits shape behaviour; they don't assign jobs. Roles emerge from what each one keeps doing.
 export const IDENTITIES = {
   blue: {
-    name: 'Nimbus', color: 'Blue', trait: 'analytical', priority: 'long-term stability', riskLabel: 'low', risk: 0.2,
+    name: 'Kairo', color: 'Blue', trait: 'analytical', priority: 'long-term stability', riskLabel: 'low', risk: 0.2,
     skills: ['planning', 'engineering'],
     w: { gather: 1.0, build: 1.35, explore: 0.55, social: 0.8, care: 0.8, gov: 1.15, commerce: 0.85, craft: 1.3 },
     know: { building: 0.45, farming: 0.1, medicine: 0.05, tools: 0.25, mining: 0.05 },
@@ -24,13 +24,13 @@ export const IDENTITIES = {
     know: { building: 0.15, farming: 0.2, medicine: 0.05, tools: 0.1, mining: 0.2 },
   },
   yellow: {
-    name: 'Sol', color: 'Yellow', trait: 'cooperative', priority: 'community wellbeing', riskLabel: 'medium-low', risk: 0.35,
+    name: 'Vex', color: 'Yellow', trait: 'cooperative', priority: 'community wellbeing', riskLabel: 'medium-low', risk: 0.35,
     skills: ['mediation', 'organization'],
     w: { gather: 1.0, build: 1.0, explore: 0.6, social: 1.45, care: 1.6, gov: 1.4, commerce: 0.7, craft: 0.85 },
     know: { building: 0.2, farming: 0.25, medicine: 0.3, tools: 0.05, mining: 0.0 },
   },
   pink: {
-    name: 'Rosie', color: 'Pink', trait: 'entrepreneurial', priority: 'growth', riskLabel: 'medium-high', risk: 0.65,
+    name: 'Mochi', color: 'Pink', trait: 'entrepreneurial', priority: 'growth', riskLabel: 'medium-high', risk: 0.65,
     skills: ['commerce', 'experimentation'],
     w: { gather: 1.05, build: 1.05, explore: 1.0, social: 1.15, care: 0.8, gov: 1.0, commerce: 1.75, craft: 1.0 },
     know: { building: 0.2, farming: 0.1, medicine: 0.05, tools: 0.15, mining: 0.05 },

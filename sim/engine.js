@@ -7,6 +7,7 @@
 import {
   TICK, DAY, DAWN, MEAL, RES, ACTIONS, BLUEPRINTS, POLICIES, BASE_PRICE,
   dayOf, hourOf, minuteOfDay, isNight, clockOf, pad, built, building, hasLaw, foodDays, agentList, nameOf, rand, pickR,
+  VOTE_WINDOW,
 } from './catalog.js';
 import * as mind from './minds.js';
 
@@ -138,7 +139,7 @@ function deposit(s, a, res, n) {
 // worlds saved by older versions of the engine get the newer fields
 function migrate(s) {
   s.decisions ??= []; s.journal ??= []; s.days ??= [];
-  for (const a of agentList(s)) a.today ??= {};
+  for (const a of agentList(s)) { a.today ??= {}; a.name = mind.IDENTITIES[a.id].name; } // names follow minds.js, so a rename reaches saved worlds too
 }
 
 export function step(s, minutes) {
@@ -1005,22 +1006,58 @@ function vote(s, a) {
   emit(s, { type: 'vote', id: a.id, p, choice });
 }
 
+// ---- the visitors' ballot box. Everyone watching the island can back or oppose the open proposal, and
+// the majority of those ballots is the fifth vote, next to the four dots'. The ballots live in the world
+// (so they survive a restart) but are never sent to viewers; only the tally on the proposal is.
+function tally(s, p) {
+  const by = s.ballots && s.ballots.num === p.num ? s.ballots.by : {};
+  const all = Object.values(by);
+  const support = all.filter((v) => v === 'support').length, oppose = all.filter((v) => v === 'oppose').length;
+  p.crowd = { support, oppose, vote: support > oppose ? 'support' : oppose > support ? 'oppose' : null };
+  return p.crowd;
+}
+export function castBallot(s, voter, choice, num = null) {
+  const p = openProposal(s);
+  if (!p || (num != null && p.num !== num) || (choice !== 'support' && choice !== 'oppose')) return null;
+  if (!s.ballots || s.ballots.num !== p.num) s.ballots = { num: p.num, by: {} };
+  s.ballots.by[voter] = choice; // one ballot per voter; a new one replaces the old
+  return tally(s, p);
+}
+export function setBallots(s, num, by) { // the whole box at once: the public site's ballots arrive through the Firebase mirror
+  const p = openProposal(s);
+  if (!p || p.num !== num) return null;
+  s.ballots = { num, by: { ...by } };
+  return tally(s, p);
+}
+
 function resolveProposals(s) {
   const p = openProposal(s);
   if (!p) return;
   const done = AGENT_IDS.every((id) => p.votes[id] === 'support' || p.votes[id] === 'oppose');
+  if (s.time < (p.opened ?? 0) + VOTE_WINDOW) return; // the ballot box stays open a while for the visitors
   if (!done && (s.time < p.closes || isNight(s))) return;
-  const yes = AGENT_IDS.filter((id) => p.votes[id] === 'support').length;
-  const no = AGENT_IDS.filter((id) => p.votes[id] === 'oppose').length;
+  const crowd = tally(s, p).vote;
+  const dotsYes = AGENT_IDS.filter((id) => p.votes[id] === 'support').length;
+  const dotsNo = AGENT_IDS.filter((id) => p.votes[id] === 'oppose').length;
+  const yes = dotsYes + (crowd === 'support' ? 1 : 0);
+  const no = dotsNo + (crowd === 'oppose' ? 1 : 0);
   let passed = yes >= 3;
   let tie = '';
-  if (!passed && yes === 2 && no === 2 && s.roles.coordinator) {
+  if (crowd) {
+    const total = p.crowd.support + p.crowd.oppose;
+    const share = Math.round((100 * Math.max(p.crowd.support, p.crowd.oppose)) / total);
+    const ballots = `${total} ballot${total === 1 ? '' : 's'}`;
+    tie = dotsYes === 2 && dotsNo === 2
+      ? ` The dots were split 2–2 and the visitors broke the tie: ${share}% ${crowd === 'support' ? 'for' : 'against'} (${ballots}).`
+      : ` The visitors voted ${crowd === 'support' ? 'for' : 'against'} it: ${share}% of ${ballots}.`;
+  } else if (!passed && yes === 2 && no === 2 && s.roles.coordinator) {
     passed = p.votes[s.roles.coordinator] === 'support';
     tie = ` Coordinator ${nameOf(s, s.roles.coordinator)} breaks the tie.`;
   }
   p.status = passed ? 'passed' : 'failed';
   p.closed = s.time;
   p.result = `${yes}–${no}`;
+  s.ballots = null; // the box is closed
   s.counters.votes++;
   if (!passed) s.counters.failedVotes++;
   const by = s.agents[p.by];

@@ -28,6 +28,8 @@ export async function createPublisher({ root, log }) {
 
   const app = admin.initializeApp({ credential: admin.credential.cert(credentials), databaseURL: config.databaseURL });
   const world = admin.database(app).ref('world');
+  const votes = admin.database(app).ref('votes'); // the visitors' ballots: votes/p<proposal>/<voter> = support | oppose
+  let ballotKeys = new Set();              // the proposals that currently have ballots in the database
   const sent = new Map();                 // path -> JSON last written, so only real changes go out
   const written = Object.fromEntries(Object.keys(LOGS).map((k) => [k, []])); // log keys we've written, oldest first
   let lastSeq = 0, eventN = 0, failing = false;
@@ -41,7 +43,7 @@ export async function createPublisher({ root, log }) {
   const liveInfo = (extra) => ({ now: Date.now(), ...extra });
 
   function chunks(S) {
-    const { outbox, history, feed, engineLog, proposals, disputes, decisions, journal, days, agents, economy, ...core } = S;
+    const { outbox, ballots, history, feed, engineLog, proposals, disputes, decisions, journal, days, agents, economy, ...core } = S;
     const out = { core: JSON.stringify({ ...core, economy: { ...economy, transactions: undefined } }) };
     for (const [id, a] of Object.entries(agents)) out[`agents/${id}`] = JSON.stringify(a);
     for (const [name, list] of Object.entries({ proposals, disputes, decisions: decisions || [] })) {
@@ -94,6 +96,14 @@ export async function createPublisher({ root, log }) {
     },
     // tell visitors the experiment is paused (the next heartbeat after a resume clears it)
     pause() { return world.child('live').update({ paused: true, now: Date.now() }); },
+    // the visitors' ballot box. The public site writes its own ballot to votes/p<proposal>/<voter> (the
+    // database rules allow exactly that, see the README); the server reads them all and counts them.
+    ballot(num, voter, choice) { return votes.child(`p${num}/${voter}`).set(choice); },
+    watchBallots(onChange) {
+      votes.on('value', (snap) => { const all = snap.val() || {}; ballotKeys = new Set(Object.keys(all)); onChange(all); }, fail);
+    },
+    clearBallots(key) { ballotKeys.delete(key); return votes.child(key).remove().then(ok, fail); },
+    pruneBallots(openNum) { for (const key of [...ballotKeys]) if (key !== `p${openNum}`) this.clearBallots(key); },
     // a heartbeat so visitors can tell the server is up, and old events are cleared away
     async beat(live) {
       world.child('live').set(liveInfo(live)).then(ok, fail);

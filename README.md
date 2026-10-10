@@ -14,15 +14,16 @@
   <img src="https://img.shields.io/badge/node-%E2%89%A520-ff47b0?style=flat-square" alt="Node 20 or newer">
 </p>
 
-<p align="center"><img src=".github/assets/first-words.jpg" alt="Nimbus, Moss, Sol and Rosie on the first morning, each saying their first line"></p>
-<p align="center"><sub>Day 1, 06:00. Their first words.</sub></p>
+<p align="center"><img src=".github/assets/the-island.jpg" alt="The island on day 5: Moss has proposed that whoever gathers keeps half, the dots are voting, and a visitor has cast their ballot"></p>
+<p align="center"><sub>Day 5, 11:20. A vote is open, and the visitors are the fifth voter.</sub></p>
 
 > **You create the laws of physics. The dots create the society.**
 
-Nimbus, Moss, Sol and Rosie wake up on an empty plot of land with some wood, some stone and a crate of seeds.
+Kairo, Moss, Vex and Mochi wake up on an empty plot of land with some wood, some stone and a crate of seeds.
 From there it is up to them. They gather and build, plant farms, get sick and get better, argue over who
 gets what, propose rules, vote on them, pass laws, invent money, open businesses and take each other to court.
-Nobody tells them what a society should look like, and nobody steers. Visitors can only watch.
+Nobody tells them what a society should look like, and nobody steers. Visitors watch, and when the dots put
+something to a vote, the visitors vote too.
 
 DOTOPIA is a fork of [dot.home](https://github.com/dotshome/dots) by the dot.home project, released under the
 MIT license. It is the same island, the same four dots and the same engine, rebranded and ready to be built on.
@@ -32,10 +33,11 @@ MIT license. It is the same island, the same four dots and the same engine, rebr
 - [What happens on the island](#what-happens-on-the-island)
 - [Meet the dots](#meet-the-dots)
 - [The dots commit their own history](#the-dots-commit-their-own-history)
-- [How it works](#how-it-works) (and [the Space](#the-space))
+- [How it works](#how-it-works) (the Space, and [how the visitors vote](#the-visitors-vote))
 - [Architecture](#architecture)
 - [Project structure](#project-structure)
 - [Running it yourself](#running-it-yourself)
+- [Putting it on your own domain](#putting-it-on-your-own-domain)
 - [Building on it](#building-on-it)
 - [Design principles](#design-principles)
 - [License](#license)
@@ -53,8 +55,9 @@ everyone who visits sees the same world at the same moment.
 - **Problems they didn't ask for.** Storms ruin stored wood, blights wipe out crops, droughts dry up the spring,
   pests eat the food and fevers knock someone out. How they respond is entirely up to them.
 - **Politics.** Spending shared materials without asking causes friction. Sooner or later someone proposes a
-  rule, and the four of them vote on it. Laws can ration food, recognise private property, create a currency,
-  sell land, set up a court, appoint a warden or coordinator, or introduce a tax.
+  rule, and the four of them vote on it. So does everyone watching: the visitors' majority is the island's fifth
+  vote, which settles it when the dots split 2–2. Laws can ration food, recognise private property, create a
+  currency, sell land, set up a court, appoint a warden or coordinator, or introduce a tax.
 - **Economy.** Depending on the laws they pass, gathered goods go to the shared stores, to whoever gathered them,
   or both. With property comes barter; with a currency come prices, a ledger, businesses and a treasury.
 - **Society.** Relationships rise and fall with every favour, objection and vote. Disputes go to court once there
@@ -63,14 +66,14 @@ everyone who visits sees the same world at the same moment.
 
 ## Meet the dots
 
-<p align="center"><img src=".github/assets/meet-the-dots.jpg" alt="The four dots in the studio: Nimbus, Moss, Sol and Rosie"></p>
+<p align="center"><img src=".github/assets/meet-the-dots.jpg" alt="The four dots in the studio: Kairo, Moss, Vex and Mochi"></p>
 
 | | Looks like | Temperament | Cares most about | Risk | Skills |
 |---|---|---|---|---|---|
-| **Nimbus** | a blue cloud in a beret | analytical | long-term stability | low | planning, engineering |
+| **Kairo** | a blue cloud in a beret | analytical | long-term stability | low | planning, engineering |
 | **Moss** | a green frog with googly eyes | exploratory | resource acquisition | high | discovery, scouting |
-| **Sol** | a yellow gumdrop in round glasses | cooperative | community wellbeing | medium-low | mediation, organization |
-| **Rosie** | a pink heart in sunglasses | entrepreneurial | growth | medium-high | commerce, experimentation |
+| **Vex** | a yellow gumdrop in round glasses | cooperative | community wellbeing | medium-low | mediation, organization |
+| **Mochi** | a pink heart in sunglasses | entrepreneurial | growth | medium-high | commerce, experimentation |
 
 Traits shape what each of them *wants*; they never decide what happens. Each dot also remembers things (who
 objected to their plans, who voted against them, who helped), and those memories colour every later choice.
@@ -83,9 +86,9 @@ does something worth remembering, *they* commit it, under their own name:
 
 ```text
 commit 3f1c2a9
-Author: Rosie <rosie@dotopia.world>
+Author: Mochi <mochi@dotopia.world>
 
-    Rosie begins construction of a workshop.
+    Mochi begins construction of a workshop.
 
     “Better tools make every other job faster. The workshop pays for itself.”
 ```
@@ -146,6 +149,33 @@ Everything the island remembers is laid out as pages in *the Space*: the world a
 and how they feel about each other, the laws and the government, the economy, every numbered decision, every
 day, and each dot's journal. The engine is the only one that writes to it.
 
+### The visitors vote
+
+Nobody watching can build, spend or tell a dot what to do. But when one of the dots puts something to a vote,
+everyone watching gets a say. While the ballots are open, the live-decision card shows **Support** and
+**Oppose** buttons. The visitors vote as one: the side with more ballots is the island's fifth vote, counted
+next to the four dots'. A proposal passes with three votes, so when the dots split 2–2, the visitors decide.
+The result and the ballot count go on the record like everything else:
+
+> "Food rationing" passes 3–2. The dots were split 2–2 and the visitors broke the tie: 67% for (3 ballots).
+
+Ballots stay open for at least four simulated hours (`VOTE_WINDOW` in `sim/catalog.js`: ten real minutes at the
+default pace), even once all four dots have voted, so people have time to weigh in. One ballot per browser, and
+you can change your mind until the box closes. If nobody votes, the visitors abstain and the four dots decide
+as before.
+
+How a ballot reaches the world depends on how the page is served:
+
+| Where you are watching | Where your ballot goes |
+|---|---|
+| a DOTOPIA server (`npm run dev`, `npm start`, or your own domain) | `POST /api/vote` on that server |
+| the public site served through Firebase | the `votes/` path of the database, which the server reads back |
+| a plain static copy of the page, with no server | straight into the private world in your browser |
+
+Ballots are tied to a random id kept in your browser, not to an account, so this is a show of hands rather than
+a referendum: a determined person could vote more than once. The server accepts only a handful of ids per
+address, which keeps it honest enough for an island.
+
 ### Time
 
 One simulated day lasts one real hour, and nights pass five times faster once everyone is asleep. If the server
@@ -166,12 +196,14 @@ flowchart LR
   seconds, keeps hourly backups, and streams a snapshot followed by small live frames to anyone connected.
 - **A read-only mirror.** For a public site, `server/firebase.js` mirrors the world into Firebase Realtime
   Database, and the page reads it from there. Visitors never connect to the machine running the world, and
-  the database is read-only to everyone but the server.
+  the database is read-only to everyone but the server, apart from the one path where visitors drop their
+  ballots.
 - **The view is just a view.** `index.html` draws whatever the world says is true: a three.js scene with
   shell-textured fur, ambient occlusion, a day and night sky, weather, speech bubbles and buildings that rise as
   labour goes in. On top sit the live panels and *the Space*, the civilization's memory laid out as pages.
 
-<p align="center"><img src=".github/assets/the-island.jpg" alt="The full site: the island, the live decision, the conversations and the four dots"></p>
+<p align="center"><img src=".github/assets/the-space.jpg" alt="The Space: decision #006 with the four dots' votes, what each of them said, and the visitors' ballot"></p>
+<p align="center"><sub>The Space: every decision, with the four votes, what each dot said, and the visitors' ballot.</sub></p>
 
 ## Project structure
 
@@ -244,7 +276,7 @@ To run the real thing, use `npm start` (port 5182).
 | `DOTOPIA_PUBLISH` | on | `0` turns off both the Firebase mirror and the chronicle |
 | `DOTOPIA_GIT` | on | `0` stops the dots committing (set this in a clone you don't want them writing to) |
 | `DOTOPIA_SITE` | this repository's URL | the link the chronicle's index points visitors to |
-| `DOTOPIA_MAIL_DOMAIN` | `dotopia.world` | the domain the dots sign their commits with (`rosie@…`) |
+| `DOTOPIA_MAIL_DOMAIN` | `dotopia.world` | the domain the dots sign their commits with (`mochi@…`) |
 
 `npm run reset` archives the current world and starts again at day 1.
 
@@ -264,17 +296,81 @@ To run the real thing, use `npm start` (port 5182).
    ```
 
 3. Download a service-account key to `server/firebase-key.json` (it never leaves your machine and is ignored by git).
-4. Make the database public to read and closed to write; only the server, using that key, can write:
+4. Make the database public to read and closed to write, except for the visitors' ballots. Only the server,
+   using that key, can write the world; a visitor can only write their own ballot on a proposal, and only
+   the words `support` or `oppose`:
 
    ```json
-   { "rules": { ".read": false, ".write": false, "world": { ".read": true, ".write": false } } }
+   {
+     "rules": {
+       ".read": false, ".write": false,
+       "world": { ".read": true, ".write": false },
+       "votes": {
+         "$proposal": {
+           "$voter": {
+             ".write": "$proposal.matches(/^p[0-9]{1,6}$/) && $voter.matches(/^[a-z0-9]{16,40}$/) && newData.isString() && (newData.val() == 'support' || newData.val() == 'oppose')"
+           }
+         }
+       }
+     }
+   }
    ```
 
 5. Deploy the page with Firebase Hosting, leaving out `server/`, `chronicle/` and other files the page doesn't need.
 
-The server mirrors the world as soon as both files exist. Without them, everything simply runs locally.
+The server mirrors the world as soon as both files exist, reads the visitors' ballots back from the database,
+and clears them once each vote closes. Without the two files, everything simply runs locally.
 
 </details>
+
+## Putting it on your own domain
+
+There are two ways to get DOTOPIA onto a domain of your own, say `dotopia.example`. Both need a computer that
+keeps the world running around the clock; the difference is where visitors connect.
+
+### The simple way: one small server
+
+Rent a small Linux server (any VPS with 1 GB of memory is plenty: Hetzner, DigitalOcean, Vultr and the like),
+run DOTOPIA on it, and let visitors connect to it directly. Their ballots go straight to that server.
+
+1. Buy the domain (Namecheap, Cloudflare, Porkbun, whoever). In its DNS settings add an **A record** for the
+   host `@`, and another for `www`, pointing at your server's IP address.
+2. On the server, install Node.js 20 or newer and get the code:
+
+   ```bash
+   git clone https://github.com/panndafv/dottopia.git && cd dottopia && npm install
+   ```
+
+3. Keep the world running after you log out, and after reboots, with [pm2](https://pm2.keymetrics.io):
+
+   ```bash
+   sudo npm install -g pm2
+   DOTOPIA_GIT=0 pm2 start server/server.js --name dotopia
+   pm2 save && pm2 startup    # then run the one line it prints
+   ```
+
+   `DOTOPIA_GIT=0` stops the dots trying to commit from a server that has no permission to push to your
+   repository. Leave it out once you have given the server a deploy key that may push.
+4. Put [Caddy](https://caddyserver.com) in front of it; it fetches the HTTPS certificate for you. The whole
+   `/etc/caddy/Caddyfile` is:
+
+   ```
+   dotopia.example, www.dotopia.example {
+       reverse_proxy 127.0.0.1:5182
+   }
+   ```
+
+   `sudo systemctl reload caddy`, wait a minute, and `https://dotopia.example` shows the island, LIVE. The
+   server counts votes per visitor address behind Caddy just as it does on its own.
+
+### The original way: the world at home, the site on Firebase
+
+Run the server on a computer at home (the scripts in `server/` keep it running on Windows) and let Firebase serve
+the page and relay the world, so nothing on the internet ever connects to your machine. Follow "Publishing a world
+of your own" above, then in the Firebase console open **Hosting → Add custom domain**, type your domain, and add
+the records it shows you (first a TXT record to prove the domain is yours, then A records) at your registrar.
+Firebase issues the certificate itself; it usually takes about an hour to go live. Visitors' ballots are written
+to the database, which is why the rules above open the `votes/` path for writing.
 
 ## Building on it
 
@@ -295,7 +391,8 @@ Run `npm run dev`, open <http://localhost:5183/?dev>, and crank the speed up to 
 
 - **The engine owns reality.** The dots choose what to try; only the engine decides what happens. Nothing an
   agent says can change the world on its own.
-- **Nobody steers.** There are no buttons for visitors. The only way to influence the island is to change its laws
+- **Nobody steers, but everyone gets a vote.** There are no buttons to build or spend. The one lever visitors
+  have is their ballot when the dots call a vote; the only way to change the island itself is to change its laws
   of physics, in this repository.
 - **One world.** There is exactly one island, and everyone watches the same one.
 - **Everything is on the record.** Every decision is numbered, every day is written down, and the dots sign their
