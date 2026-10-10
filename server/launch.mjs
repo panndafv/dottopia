@@ -1,4 +1,4 @@
-// The double-click launcher (start-windows.cmd, start-mac.command, start-linux.sh): starts the private
+// The double-click launcher (start.bat, start-mac.command, start-linux.sh): starts the private
 // dev world (server/dev.mjs) and opens it in the browser as soon as it answers. Nothing here is needed to
 // run DOTOPIA from a terminal; `npm run dev` does the same without opening a browser.
 import { spawn } from 'node:child_process';

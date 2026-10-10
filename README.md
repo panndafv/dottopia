@@ -178,7 +178,7 @@ flowchart LR
 ```text
 .
 ├── index.html          the page: scene, fur, the dots, layout
-├── start-windows.cmd   double-click to run it (Windows)
+├── start.bat           double-click to run it (Windows)
 ├── start-mac.command   double-click to run it (Mac)
 ├── start-linux.sh      ./start-linux.sh (Linux)
 ├── assets/             the four dots (agents.glb) and the icons
@@ -211,7 +211,7 @@ build step: the page loads three.js from a CDN and the server is plain Node.
 
 1. Install [Node.js](https://nodejs.org): the LTS version, default options.
 2. [Download DOTOPIA](https://github.com/panndafv/dottopia/archive/refs/heads/claude/relaxed-dirac-n735ab.zip) and unzip it.
-3. Double-click **`start-windows.cmd`** (Windows) or **`start-mac.command`** (Mac). On Linux, run `./start-linux.sh`.
+3. Double-click **`start.bat`** (Windows) or **`start-mac.command`** (Mac). On Linux, run `./start-linux.sh`.
 
 A window opens with the world's log, and your browser opens the island with speed controls in the top bar, so you
 can watch days go by in seconds. Close the window to stop; the world is saved and carries on next time.
