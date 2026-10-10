@@ -206,7 +206,7 @@
   #toast.show { opacity: 1; transform: translate(-50%, 0); }
 
   /* lineup mode is a clean showcase */
-  body.lineup #left, body.lineup #rail, body.lineup #res, body.lineup #railToggle, body.lineup .pop, body.lineup #speed, body.lineup .watch { display: none; }
+  body.lineup #left, body.lineup #leftToggle, body.lineup #rail, body.lineup #res, body.lineup #railToggle, body.lineup .pop, body.lineup #speed, body.lineup .watch { display: none; }
   body.lineup .tag .nm { display: none; }
 
   /* ---------- meet the dots: a warm studio, like a toy photo shoot ---------- */
@@ -277,6 +277,28 @@
 
   .spacebtn { display: inline-flex; align-items: center; gap: 7px; border: 0; background: var(--ink); color: #fff; border-radius: 14px; padding: 9px 14px 9px 12px; font-weight: 900; font-size: 13px; cursor: pointer; white-space: nowrap; }
   .spacebtn svg { width: 17px; height: 17px; flex: none; }
+  /* where else DOTOPIA lives: the X account and the coin's contract address, both set in site.js */
+  .social { display: flex; align-items: center; gap: 6px; }
+  .social a { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--line); color: var(--ink); transition: background .15s, transform .15s; }
+  .social a:hover { background: rgba(28, 31, 46, .15); transform: translateY(-1px); }
+  .social svg { width: 17px; height: 17px; }
+  .ca { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 11px 0 10px; border: 0; border-radius: 12px; background: var(--line); color: var(--ink); font: inherit; font-weight: 900; font-size: 12px; cursor: pointer; transition: background .15s, transform .15s; }
+  .ca:hover { background: rgba(28, 31, 46, .15); transform: translateY(-1px); }
+  .ca .l { font-size: 10px; letter-spacing: .8px; color: var(--muted); }
+  .ca code { font-size: 12px; font-weight: 700; }
+  .ca .cp { font-size: 13px; color: var(--muted); }
+  .ca.soon { cursor: default; color: var(--muted); }
+  .ca.soon:hover { background: var(--line); transform: none; }
+  .ca.done { background: #d9f7e4; color: #137a3f; }
+  .sv-foot .social { margin-top: 8px; }
+  .sv-foot .social a, .sv-foot .ca { height: 32px; border-radius: 10px; }
+  .sv-foot .social a { width: 32px; }
+  .sv-foot .social svg { width: 15px; height: 15px; }
+  /* the handle that hides and shows the left column */
+  #leftToggle { position: fixed; top: 50%; left: calc(14px + 300px + 4px); transform: translateY(-50%); width: 22px; height: 58px; border: 0; border-radius: 0 11px 11px 0; padding: 0; font-size: 18px; font-weight: 900; color: var(--muted); cursor: pointer; z-index: 4; transition: left .2s; }
+  #leftToggle:hover { color: var(--ink); }
+  body.left-closed #left { display: none; }
+  body.left-closed #leftToggle { left: 0; }
   .openspace { width: 100%; margin: 2px 0 8px; border: 0; border-radius: 11px; padding: 10px; background: var(--ink); color: #fff; font-weight: 900; font-size: 12.5px; cursor: pointer; }
 
   /* ---------- the Space: the civilization's memory as pages ---------- */
@@ -389,7 +411,7 @@
     .stats span { font-size: 9.5px; }
   }
 
-  @media (max-width: 1180px) { #left { width: 270px; } #rail { width: 300px; } #eventCard { display: none; } }
+  @media (max-width: 1180px) { #left { width: 270px; } #leftToggle { left: calc(14px + 270px + 4px); } #rail { width: 300px; } #eventCard { display: none; } }
   /* ---------- phones, tablets and short windows: one column, and the panels slide up as a sheet ---------- */
   .sheet-head { display: none; }
   @media (max-width: 900px), (max-height: 500px) {
@@ -418,6 +440,12 @@
     body.rail-open #res, body.rail-open #left, body.rail-open #modes, body.rail-open #railToggle { display: none; }
     .sheet-head { display: flex; align-items: center; justify-content: center; position: relative; height: 40px; flex: none; }
     .sheet-head .grab { width: 40px; height: 5px; border-radius: 99px; background: rgba(28, 31, 46, .16); }
+    .sheet-head .social { position: absolute; left: 8px; top: 5px; }
+    .sheet-head .social a, .sheet-head .ca { height: 34px; border-radius: 11px; }
+    .sheet-head .social a { width: 34px; }
+    .sheet-head .social svg { width: 16px; height: 16px; }
+    #top .ca { display: none; } /* the bar is narrow here: the contract address lives in the panel sheet instead */
+    #leftToggle { display: none; } /* the left column is a ticker here, which opens and closes on a tap */
     .sheet-head .social { position: absolute; left: 8px; top: 5px; }
     .sheet-head .social a { width: 34px; height: 34px; border-radius: 11px; }
     .sheet-head .social svg { width: 16px; height: 16px; }
@@ -464,6 +492,7 @@
   <div class="pop">POPULATION <b>4</b></div>
   <div class="watch" id="watching"></div>
   <button id="openSpace" class="spacebtn" title="The civilization's shared memory" aria-label="Open the Space"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="12.5" height="15.5" rx="2.6"/><path d="M8 21h9.4a2.6 2.6 0 0 0 2.6-2.6V7.5M7.8 8.2h5M7.8 12.2h5"/></svg><span>Space</span></button>
+  <nav class="social" data-social aria-label="DOTOPIA elsewhere"></nav>
   <div id="speed" class="seg" title="dev: simulation speed"><button data-s="0">⏸</button><button data-s="1">1×</button><button data-s="2">10×</button><button data-s="3">40×</button><button data-s="4">160×</button></div>
 </header>
 
@@ -477,11 +506,12 @@
 </section>
 
 <aside id="rail" class="card">
-  <div class="sheet-head"><span class="grab"></span><button id="railClose" aria-label="Close">✕</button></div>
+  <div class="sheet-head"><nav class="social" data-social aria-label="DOTOPIA elsewhere"></nav><span class="grab"></span><button id="railClose" aria-label="Close">✕</button></div>
   <nav id="tabs"><button data-tab="agents" class="on">Agents</button><button data-tab="space">Space</button><button data-tab="history">History</button><button data-tab="laws">Laws</button><button data-tab="economy">Economy</button></nav>
   <div id="panel"></div>
 </aside>
 <button id="railToggle" class="card" aria-label="Open the Space">☰</button>
+<button id="leftToggle" class="card" aria-label="Hide the side panel" title="Hide the side panel">‹</button>
 
 <div id="res" class="card"></div>
 <nav id="modes" class="card">
@@ -502,7 +532,7 @@
   <aside class="sv-side">
     <div class="sv-brand"><img class="logo" src="assets/icon-96.png" alt="" width="26" height="26">DOTOPIA <span class="muted">Space</span></div>
     <nav class="sv-tree"></nav>
-    <div class="sv-foot muted small">Read-only. Every page is written by the simulation.</div>
+    <div class="sv-foot muted small">Read-only. Every page is written by the simulation.<nav class="social" data-social aria-label="DOTOPIA elsewhere"></nav></div>
   </aside>
   <main class="sv-main">
     <div class="sv-top"><button class="sv-menu">☰ Pages</button><button class="sv-close">← Back to the world</button></div>
@@ -532,6 +562,29 @@ import { World3D, ISLAND_R, ZONES, PLOTS, HOME_PLOTS, SIZE } from './world/props
 import { createUI, taskIcon, describeTask, esc } from './ui/panels.js';
 import { IDENTITIES, roleOf } from './sim/minds.js';
 import { createSpaceView } from './ui/space-view.js';
+import SITE from './site.js';
+
+// ---------- where else DOTOPIA lives (site.js): the X account and the coin's contract address ----------
+// Shown in the top bar, in the panel sheet on phones, and at the foot of the Space. Drawn before anything
+// loads, so the links are there even while the island is still waking up.
+{
+  const X_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.9 1.15h3.68l-8.04 9.19L24 22.85h-7.4l-5.8-7.58-6.64 7.58H.47l8.6-9.83L0 1.15h7.59l5.24 6.93zm-1.29 19.5h2.04L6.49 3.24H4.3z"/></svg>';
+  const x = SITE.x ? `<a href="${esc(SITE.x)}" target="_blank" rel="noopener" title="DOTOPIA on X" aria-label="DOTOPIA on X">${X_ICON}</a>` : '';
+  const ca = SITE.ca
+    ? `<button class="ca" data-ca="${esc(SITE.ca)}" title="Copy the contract address" aria-label="Copy the coin's contract address"><span class="l">CA</span><code>${esc(SITE.ca.slice(0, 4))}…${esc(SITE.ca.slice(-4))}</code><span class="cp">⧉</span></button>`
+    : '<span class="ca soon" title="The coin\'s contract address will appear here"><span class="l">CA</span><code>soon</code></span>';
+  for (const el of document.querySelectorAll('[data-social]')) el.innerHTML = x + ca;
+  document.addEventListener('click', async (e) => { // tap the address to copy it
+    const b = e.target.closest('.ca[data-ca]');
+    if (!b) return;
+    try { await navigator.clipboard.writeText(b.dataset.ca); } catch { prompt('The contract address:', b.dataset.ca); return; }
+    const code = b.querySelector('code'), was = code.textContent;
+    code.textContent = 'copied!'; b.classList.add('done');
+    setTimeout(() => { code.textContent = was; b.classList.remove('done'); }, 1400);
+  });
+  // the left column stays hidden if you hid it last time (the handle itself is wired in ui/panels.js)
+  try { if (localStorage.getItem('dotopia.left') === 'closed') document.body.classList.add('left-closed'); } catch { /* no storage */ }
+}
 
 // ---------- utils ----------
 const rand = (a, b) => a + Math.random() * (b - a);

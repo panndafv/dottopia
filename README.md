@@ -210,6 +210,7 @@ flowchart LR
 ```text
 .
 ├── index.html          the page: scene, fur, the dots, layout
+├── site.js             your links: the X account and the coin's contract address
 ├── start.bat           double-click to run it (Windows)
 ├── start-mac.command   double-click to run it (Mac)
 ├── start-linux.sh      ./start-linux.sh (Linux)
@@ -377,6 +378,8 @@ to the database, which is why the rules above open the `votes/` path for writing
 Everything is plain JavaScript modules, shared between the browser preview and the server, so a change to the
 simulation shows up in both. Good places to start:
 
+- **Set your links** in `site.js`: the X account shown in the top bar, and the coin's contract address. Leave the
+  address empty to show "CA: soon"; fill it in to show it with a copy button.
 - **Change the laws of physics** in `sim/catalog.js`: what things cost, what each building needs, how fast needs
   drain, which policies a law can set.
 - **Change who the dots are** in `sim/minds.js`: their traits, what they say, and `decide()`, the one function

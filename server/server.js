@@ -40,7 +40,7 @@ function catchUp(seconds, why) {
   E.step(S, minutes);
   say(`${why}: replayed ${Math.round(seconds)}s of real time (day ${d0} -> day ${dayOf(S)}) in ${Date.now() - t0}ms`);
 }
-const PUBLIC = new Set(['index.html', 'favicon.ico', 'assets', 'sim', 'world', 'ui']); // nothing else is served
+const PUBLIC = new Set(['index.html', 'favicon.ico', 'site.js', 'assets', 'sim', 'world', 'ui']); // nothing else is served
 const MAX_VIEWERS = 5000;
 
 const stamp = () => new Date().toISOString().replace(/[:.]/g, '-');

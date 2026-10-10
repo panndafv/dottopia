@@ -111,6 +111,15 @@ export function createUI({ colors, dev = false, onSelect, onSpeed, onReset, onCl
   });
   $('railToggle')?.addEventListener('click', () => document.body.classList.toggle('rail-open'));
   $('railClose')?.addEventListener('click', () => document.body.classList.remove('rail-open'));
+  // the handle on the left column: hide it, show it, and remember the choice
+  const setLeft = (closed) => {
+    document.body.classList.toggle('left-closed', closed);
+    const b = $('leftToggle');
+    if (b) { b.textContent = closed ? '›' : '‹'; b.title = b.ariaLabel = closed ? 'Show the side panel' : 'Hide the side panel'; }
+    try { localStorage.setItem('dotopia.left', closed ? 'closed' : 'open'); } catch { /* no storage */ }
+  };
+  setLeft(document.body.classList.contains('left-closed'));
+  $('leftToggle')?.addEventListener('click', () => setLeft(!document.body.classList.contains('left-closed')));
   function refreshTabs() { document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab)); }
 
   const dot = (id) => dotHTML(colors, id);
