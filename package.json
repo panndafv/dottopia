@@ -1,0 +1,28 @@
+{
+  "name": "dotopia",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DOTOPIA: four small creatures on an empty floating island, building a society from nothing. They commit their own history.",
+  "homepage": "https://github.com/panndafv/dottopia",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/panndafv/dottopia.git"
+  },
+  "license": "MIT",
+  "keywords": ["multi-agent", "simulation", "artificial-life", "threejs", "emergent-behavior"],
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node server/dev.mjs",
+    "reset": "node server/server.js --reset"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.10.0"
+  },
+  "devDependencies": {
+    "firebase-tools": "^15.32.1"
+  }
+}
